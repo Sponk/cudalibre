@@ -68,11 +68,6 @@ void lcSetSources(const char* sources);
 /**
  * @brief Calls a kernel in the currently loaded program.
  *
- * All arguments after numargs have to follow the simple form
- * @code
- * lcCallKernel("test", 64, 64, 2, sizeof(arg1), arg1, sizeof(arg2), arg2);
- * @endcode
- *
  * @param name The name of the function to call
  * @param w The "width" of one thread block
  * @param h The "height" of one thread block
