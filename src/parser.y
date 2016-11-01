@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <cuda_defines.h>
 
 extern "C" int yylex();
 extern "C" int yyparse();
@@ -104,7 +105,7 @@ parser:
 		;
 
 file:
-	global_function { cppstream << *$1; clstream << "__kernel " << *$1 << endl; delete $1; }
+	global_function { /*cppstream << *$1;*/ clstream << "__kernel " << *$1 << endl; delete $1; }
 	| device_function { clstream << *$1 << endl; delete $1; }
 	| linelist { cppstream << *$1; delete $1; }
 	| CURLY_OPEN linelist CURLY_CLOSE { cppstream << "{" << *$2 << "}"; delete $2; }
@@ -175,7 +176,7 @@ int parse(FILE *fp)
 	std::exit(EXIT_SUCCESS);
 #endif
 
-	cout << "Produced C++: " << endl << cppstream.str() << endl << "OpenCL: " << endl << clstream.str() << endl;
+	// cout << "Produced C++: " << endl << cppstream.str() << endl << "OpenCL: " << endl << clstream.str() << endl;
 	return 0;
 }
 
@@ -222,7 +223,7 @@ int main(int argc, char **argv)
 		perror("Could not open input file!");
 		return 1;
 	}
-	
+
 	int result = parse(f);
 	
 	ofstream cppout(argv[2]);
@@ -237,7 +238,7 @@ int main(int argc, char **argv)
 
 	// Write some comment to make understanding the generated code easier
 	cppout << "// Save the CUDA -> OpenCL translated code into a string" << endl;
-	cppout << "static const char* librecuda_clcode = " << stringify(clstream.str()) << ";" <<  endl;
+	cppout << "static const char* librecuda_clcode = " << stringify(cuda_header) << endl << stringify(clstream.str()) << ";" <<  endl;
 	cppout << endl << "// Use an anonymous namespace to provide an constructor function that sets up the runtime environment." << endl;
 	cppout << "namespace { class LibreCudaInitializer { public: LibreCudaInitializer() { lcSetSources(librecuda_clcode); } } init; }" << endl << endl;
 	cppout << cppstream.str();
