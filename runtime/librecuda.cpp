@@ -5,7 +5,13 @@
 #ifdef __APPLE__
 #include <OpenCL/opencl.hpp>
 #else
+
+#ifndef USE_CL1
 #include <CL/cl2.hpp>
+#else
+#include <CL/cl.hpp>
+#endif // USE_CL1
+
 #endif
 
 #include <iostream>
@@ -140,14 +146,24 @@ inline bool checkErr(cl_int err, const char* name)
 	return false;
 }
 
-void lcSetSources(const char* sources)
+bool lcSetSources(const char* sources)
 {
+#ifndef USE_CL1
 	cl::Program::Sources source(1, sources); //source(1, std::make_pair(sources, strlen(sources) + 1));
+#else
+	cl::Program::Sources source(1, std::make_pair(sources, strlen(sources) + 1));
+#endif
 	
 	g_context.program = cl::Program(g_context.clcontext, source);
 	int err = g_context.program.build(g_context.devices, "");
 
-	checkErr(err, sources);
+	if(checkErr(err, sources))
+	{
+		cout << "Build log:" << endl << g_context.program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(g_context.devices[g_context.currentDevice]) << endl;
+		return false;
+	}
+
+	return true;
 }
 
 void lcWaitForKernel()
@@ -155,7 +171,7 @@ void lcWaitForKernel()
 	g_context.queue.finish();
 }
 
-void lcCallKernel(const char* name, int w, int h, const lcArgumentList& args)
+bool lcCallKernel(const char* name, int w, int h, const lcArgumentList& args)
 {
 	int err;
 	cl::Kernel kernel(g_context.program, name, &err);
@@ -176,12 +192,10 @@ void lcCallKernel(const char* name, int w, int h, const lcArgumentList& args)
 		NULL, 
 		&event);
 	
-	checkErr(err, "ComamndQueue::enqueueNDRangeKernel()");
-	
-	//err = kernel.setArg(0, outCL);
-	//checkErr(err, "Kernel::setArg()");
+	return !checkErr(err, "ComamndQueue::enqueueNDRangeKernel()");
 }
-void lcCallKernel(const char* name, int w, int h)
+
+bool lcCallKernel(const char* name, int w, int h)
 {
 	int err;
 	cl::Kernel kernel(g_context.program, name, &err);
@@ -196,7 +210,7 @@ void lcCallKernel(const char* name, int w, int h)
 		NULL,
 		&event);
 
-	checkErr(err, "ComamndQueue::enqueueNDRangeKernel()");
+	return !checkErr(err, "ComamndQueue::enqueueNDRangeKernel()");
 }
 
 cudaError_t cudaGetDeviceCount(int* count)

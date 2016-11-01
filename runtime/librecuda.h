@@ -47,6 +47,7 @@ struct cudaDeviceProp
 	int deviceOverlap;
 	int multiProcessorCount;
 	int kernelExecTimeoutEnabled;
+	int l2CacheSize;
 	int integrated;
 	int canMapHostMemory;
 	int computeMode;
@@ -63,7 +64,7 @@ cudaError_t cudaGetDeviceProperties(struct cudaDeviceProp* prop, int device);
 /// Non-CUDA functions
 
 typedef std::vector<std::pair<size_t, void*>> lcArgumentList;
-void lcSetSources(const char* sources);
+bool lcSetSources(const char* sources);
 
 /**
  * @brief Calls a kernel in the currently loaded program.
@@ -73,13 +74,12 @@ void lcSetSources(const char* sources);
  * @param h The "height" of one thread block
  * @param args A list of arguments
  */
-void lcCallKernel(const char* name, int w, int h, const lcArgumentList& args);
-void lcCallKernel(const char* name, int w, int h); // No args
+bool lcCallKernel(const char* name, int w, int h, const lcArgumentList& args);
+bool lcCallKernel(const char* name, int w, int h); // No args
 
 void lcWaitForKernel();
 
 #define LC_KERNEL_ARG(x) {sizeof(x), lcCopyElement<typeof(x)>(x)}
 template<typename T> void* lcCopyElement(const T& src) { T* t = (T*) malloc(sizeof(T)); memcpy(t, &src, sizeof(T)); return t; }
-
 
 #endif
