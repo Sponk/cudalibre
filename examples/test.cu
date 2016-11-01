@@ -2,10 +2,10 @@
 
 __global__ void testkernel(int j, float f)
 {
-	printf("HI");
+	printf("Test: %d %f\n", j, f);
 }
 
 int main(int argc, char* argv[])
 {
-	testkernel<<<32, 32>>>(12, 32.00f);
+	testkernel<<<512, 32>>>(12, 32.00f);
 }

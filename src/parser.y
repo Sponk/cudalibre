@@ -57,13 +57,13 @@ string& generateKernelCall(string& str)
 		vector<string> args;
 		splitstr(tmp, ',', args);
 
-		ss << ", lcArgumentList(";
+		ss << ", lcArgumentList({";
 		for(int i = 0; i < args.size(); i++)
 			ss << "LC_KERNEL_ARG(" << args[i] << ((i == args.size() - 1) ? ")" : "), ");
 			//ss << "{ sizeof(" << args[i] << "), " << args[i] << "}" << ((i == args.size() - 1) ? "" : ", ");
 
 		//ss << "{0, nullptr}}";
-		ss << "));";
+		ss << "}));";
 	}
 
 	str = ss.str();
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 {
 	cout << "LibreCUDA compiler v0.1" << endl;
 	
-	if(argc < 2)
+	if(argc < 3)
 		return 0;
 	
 	FILE* f = fopen(argv[1], "r");
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
 	
 	int result = parse(f);
 	
-	ofstream cppout(std::string(argv[1]) + ".cpp");
+	ofstream cppout(argv[2]);
 	
 	if(!cppout)
 	{
