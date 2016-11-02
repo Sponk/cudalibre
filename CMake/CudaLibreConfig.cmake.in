@@ -6,7 +6,7 @@
  
 # Compute paths
 get_filename_component(CUDALIBRE_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-set(CudaLibre_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
+set(CudaLibre_INCLUDE_DIRS "@CMAKE_INSTALL_PREFIX@/include/cudalibre")
  
 # Our library dependencies (contains definitions for IMPORTED targets)
 if(NOT TARGET clcc AND NOT CudaLibre_BINARY_DIR)
@@ -41,6 +41,6 @@ macro(cuda_add_executable name)
 
     add_executable(${name} ${_SOURCELIST})
     add_dependencies(${name} ${_CUDA_DEPS})
-    target_link_libraries(${name} ${LibreCuda_LIBRARIES} ${OpenCL_LIBRARIES})
-    target_include_directories(${name} PUBLIC ${LibreCuda_INCLUDES})
+    target_link_libraries(${name} ${CudaLibre_LIBRARIES} ${OpenCL_LIBRARIES})
+    target_include_directories(${name} PUBLIC ${CudaLibre_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 endmacro()
