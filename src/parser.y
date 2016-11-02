@@ -84,8 +84,8 @@ string& generateKernelCall(string& str)
 %token <character> CHARACTER
 %token CURLY_OPEN
 %token CURLY_CLOSE
-%token GLOBAL
-%token DEVICE
+%token <sval> GLOBAL
+%token <sval> DEVICE
 %token SPACE
 %token <sval> KERNEL_CALL
 
@@ -95,7 +95,8 @@ string& generateKernelCall(string& str)
 %type <sval> linelist
 %type <sval> global_function
 %type <sval> device_function
-%type <sval> code_block;
+%type <sval> code_block
+%type <sval> spacelist
 
 %%
 
@@ -121,9 +122,13 @@ word: CHARACTER { $$ = new string; *$$ += $1; }
 wordlist: word { $$ = $1; }
 	| wordlist SPACE word { *$1 += " " + *$3; delete $3; $$ = $1; }
 	;
-	
+
+spacelist: SPACE { $$ = new string(" "); }
+	| spacelist SPACE { *$1 += " "; $$ = $1; }
+	;
+
 line: wordlist NEWLINE { *$1 += "\n"; $$ = $1; }
-	| SPACE wordlist NEWLINE { *$2 += "\n"; $$ = $2; }
+	| spacelist wordlist NEWLINE { *$1 += *$2 + "\n"; $$ = $1; delete $2; }
 	| NEWLINE { $$ = new string("\n"); }
 	//| line KERNEL_CALL { *$1 += generateKernelCall(*$2); $$ = $1; delete $2; }
 	;
@@ -141,13 +146,11 @@ code_block: { $$ = new string(); }
 //	; 
 
 global_function:
-	GLOBAL SPACE line code_block { *$3 += *$4; delete $4; $$ = $3; }
-	| SPACE GLOBAL SPACE line code_block { *$4 += *$5; delete $5; $$ = $4; }
+	GLOBAL line code_block { *$1 += *$2 + *$3; delete $3; delete $2; $$ = $1; }
 	;
 	
 device_function:
-	DEVICE SPACE line code_block { *$3 += *$4; delete $4; $$ = $3; }
-	| SPACE DEVICE SPACE line code_block { *$4 += *$5; delete $5; $$ = $4; }
+	DEVICE line code_block { *$1 += *$2 + *$3; delete $3; delete $2; $$ = $1; }
 	;
 
 %%
@@ -183,7 +186,7 @@ int parse(FILE *fp)
 void yyerror(const char *s)
 {
 	std::cout << "Parser error: " << s << " at " << currline << std::endl;
-	//std::exit(EXIT_FAILURE);
+	std::exit(EXIT_FAILURE);
 }
 
 void replacestr(std::string& str, const std::string& search, const std::string& replace)
@@ -234,7 +237,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	
-	cppout << "#include <librecuda.h>" << endl;
+	cppout << "#include <cudalibre.h>" << endl;
 
 	// Write some comment to make understanding the generated code easier
 	cppout << "// Save the CUDA -> OpenCL translated code into a string" << endl;
