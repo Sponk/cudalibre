@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <librecuda.h>
+#include <cudalibre.h>
 #include <iostream>
 
 using namespace std;

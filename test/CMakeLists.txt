@@ -1,4 +1,3 @@
-find_package(OpenCL REQUIRED)
 find_package(GTest REQUIRED)
 
 include_directories(
@@ -8,4 +7,4 @@ include_directories(
 )
 
 add_executable(tests main.cpp EnumerationTest.cpp KernelTest.cpp)
-target_link_libraries(tests lcruntime ${OpenCL_LIBRARIES} ${GTEST_LIBRARIES} pthread)
+target_link_libraries(tests clruntime ${GTEST_LIBRARIES} pthread)

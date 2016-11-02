@@ -1,10 +1,44 @@
-
 cmake_minimum_required(VERSION 3.5)
+project(CudaLibre)
 
-#set(LC_BINARY_OUTPUT ${CMAKE_BINARY_DIR}/BinaryOutput)
-#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${LC_BINARY_OUTPUT})
-#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${LC_BINARY_OUTPUT})
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${LC_BINARY_OUTPUT})
+# Version info
+set(CUDALIBRE_MAJOR_VERSION 0)
+set(CUDALIBRE_MINOR_VERSION 1)
+set(CUDALIBRE_PATCH_VERSION 0)
+set(CUDALIBRE_VERSION ${CUDALIBRE_MAJOR_VERSION}.${CUDALIBRE_MINOR_VERSION}.${CUDALIBRE_PATCH_VERSION})
+set(CUDALIBRE_PACKAGE "CudaLibre")
+SET(CUDALIBRE_VENDOR "Yannick Pflanzer")
+SET(CUDALIBRE_COPYRIGHT "Copyright (c) 2016, ${CUDALIBRE_VENDOR}.")
+
+set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
+set(INSTALL_BIN_DIR bin CACHE PATH "Installation directory for executables")
+set(INSTALL_INCLUDE_DIR include CACHE PATH "Installation directory for header files")
+
+if(WIN32 AND NOT CYGWIN)
+    set(DEF_INSTALL_CMAKE_DIR CMake)
+else()
+    set(DEF_INSTALL_CMAKE_DIR lib/CudaLibre)
+endif()
+
+set(INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH "Installation directory for CMake files")
+
+## Packaging
+set(CPACK_PACKAGE_NAME "${CUDALIBRE_PACKAGE}")
+SET(CPACK_PACKAGE_VENDOR "${CUDALIBRE_VENDOR}")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Neo game engine and editor.")
+SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/README.md")
+SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+SET(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
+SET(CPACK_PACKAGE_VERSION_MAJOR "${CUDALIBRE_MAJOR_VERSION}")
+SET(CPACK_PACKAGE_VERSION_MINOR "${CUDALIBRE_MINOR_VERSION}")
+SET(CPACK_PACKAGE_VERSION_PATCH "${CUDALIBRE_PATCH_VERSION}")
+set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CUDALIBRE_VERSION}.${CMAKE_SYSTEM_PROCESSOR}")
+
+SET(CPACK_PACKAGE_CONTACT Yannick Pflanzer <yp1995@live.de>)
+SET(CPACK_GENERATOR "STGZ;TGZ;DEB;RPM;")
+SET(CPACK_STRIP_FILES ON)
+
+include(CPack)
 
 set(CMAKE_MODULE_PATH
         ${CMAKE_SOURCE_DIR}/CMake
@@ -14,10 +48,30 @@ set(CMAKE_MODULE_PATH
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(CLCC ${CMAKE_BINARY_DIR}/src/lccc)
+set(CLCC ${CMAKE_BINARY_DIR}/src/clcc)
 include("CudaLibre")
 
 add_subdirectory(src)
 add_subdirectory(runtime)
 add_subdirectory(test)
-add_subdirectory(examples)
+#add_subdirectory(examples)
+
+# CMake install package
+export(TARGETS clcc clruntime FILE "${PROJECT_BINARY_DIR}/CudaLibreTargets.cmake")
+export(PACKAGE LibreCuda)
+
+set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
+configure_file(CMake/CudaLibreConfig.cmake.in "${PROJECT_BINARY_DIR}/CudaLibreConfig.cmake" @ONLY)
+
+set(CONF_INCLUDE_DIRS "\${CUDALIBRE_CMAKE_DIR}/${REL_INCLUDE_DIR}")
+configure_file(CMake/CudaLibreConfig.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CudaLibreConfig.cmake" @ONLY)
+
+configure_file(CMake/CudaLibreConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/CudaLibreConfigVersion.cmake" @ONLY)
+
+install(FILES
+        "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CudaLibreConfig.cmake"
+        "${PROJECT_BINARY_DIR}/CudaLibreConfigVersion.cmake"
+        DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
+
+install(EXPORT CudaLibreTargets DESTINATION
+        "${INSTALL_CMAKE_DIR}" COMPONENT dev)

@@ -1,5 +1,5 @@
-#ifndef __LIBRECUDA_H__
-#define __LIBRECUDA_H__
+#ifndef __CUDALIBRE_H__
+#define __CUDALIBRE_H__
 
 #include <stddef.h>
 #include <utility> // So std::pair can be used for kernel calls
@@ -26,6 +26,16 @@ enum cudaComputeMode
 	cudaComputeModeDefault,
 	cudaComputeModeExclusive,
 	cudaComputeModeProhibited
+};
+
+struct dim3
+{
+	dim3(float x, float y, float z)
+		: x(x), y(y), z(z) {}
+
+	float x;
+	float y;
+	float z;
 };
 
 struct cudaDeviceProp 
@@ -64,6 +74,7 @@ cudaError_t cudaGetDeviceProperties(struct cudaDeviceProp* prop, int device);
 /// Non-CUDA functions
 
 typedef std::vector<std::pair<size_t, void*>> lcArgumentList;
+
 bool lcSetSources(const char* sources);
 
 /**
@@ -79,7 +90,9 @@ bool lcCallKernel(const char* name, int w, int h); // No args
 
 void lcWaitForKernel();
 
-#define LC_KERNEL_ARG(x) {sizeof(x), lcCopyElement<typeof(x)>(x)}
-template<typename T> void* lcCopyElement(const T& src) { T* t = (T*) malloc(sizeof(T)); memcpy(t, &src, sizeof(T)); return t; }
+// We don't need to actually copy the arguments since OpenCL does not keep the pointer
+// and copies the data for itself.
+#define LC_KERNEL_ARG(x) {sizeof(x), lcAddressOf<typeof(x)>(x)}
+template<typename T> void* lcAddressOf(const T& src) { /*T* t = (T*) malloc(sizeof(T)); memcpy(t, &src, sizeof(T)); return t;*/ return (void*) &src; }
 
 #endif

@@ -1,4 +1,4 @@
-#include "librecuda.h"
+#include "cudalibre.h"
 
 #define CL_HPP_TARGET_OPENCL_VERSION 200
 
@@ -191,7 +191,7 @@ bool lcCallKernel(const char* name, int w, int h, const lcArgumentList& args)
 		cl::NullRange, 
 		NULL, 
 		&event);
-	
+
 	return !checkErr(err, "ComamndQueue::enqueueNDRangeKernel()");
 }
 
