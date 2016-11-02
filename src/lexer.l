@@ -21,7 +21,7 @@ using namespace std;
 __global__[ \t].+ { yylval.sval = new string(yytext); return GLOBAL; }
 __device__[ \t].+ { yylval.sval = new string(yytext); return DEVICE; }
 
-[a-zA-Z]+<<<[0-9]+,\ [0-9]+>>>\(.*\); { yylval.sval = new std::string(yytext); return KERNEL_CALL; }
+[a-zA-Z_]+<<<[a-zA-Z0-9_]+,\ [a-zA-Z0-9_]+>>>\(.*\); { yylval.sval = new std::string(yytext); return KERNEL_CALL; }
 
 "{" return CURLY_OPEN;
 "}" return CURLY_CLOSE;

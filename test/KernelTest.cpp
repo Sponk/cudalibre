@@ -14,7 +14,7 @@ TEST(KernelTest, PrintfKernel)
 							 "}\n"));
 
 	std::cout << std::endl;
-	EXPECT_TRUE(lcCallKernel("test", 2, 2));
+	EXPECT_TRUE(lcCallKernel("test", 4, 4));
 	lcWaitForKernel();
 }
 
@@ -29,6 +29,6 @@ TEST(KernelTest, PrintfKernelArg)
 
 	std::cout << std::endl;
 
-	EXPECT_TRUE(lcCallKernel("test", 2, 2, lcArgumentList({LC_KERNEL_ARG(12), LC_KERNEL_ARG(42.0f), LC_KERNEL_ARG(3.1415f)})));
+	EXPECT_TRUE(lcCallKernel("test", 4, 4, lcArgumentList({LC_KERNEL_ARG(12), LC_KERNEL_ARG(42.0f), LC_KERNEL_ARG(3.1415f)})));
 	lcWaitForKernel();
 }

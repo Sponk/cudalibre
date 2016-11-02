@@ -33,6 +33,14 @@ struct dim3
 	dim3(float x, float y, float z)
 		: x(x), y(y), z(z) {}
 
+	dim3(float x, float y)
+		: x(x), y(y), z(0) {}
+
+	dim3(float x)
+		: x(x), y(0), z(0) {}
+
+	dim3() : x(0), y(0), z(0) {}
+
 	float x;
 	float y;
 	float z;
@@ -85,8 +93,8 @@ bool lcSetSources(const char* sources);
  * @param h The "height" of one thread block
  * @param args A list of arguments
  */
-bool lcCallKernel(const char* name, int w, int h, const lcArgumentList& args);
-bool lcCallKernel(const char* name, int w, int h); // No args
+bool lcCallKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const lcArgumentList& args);
+bool lcCallKernel(const char* name, const dim3& gridsize, const dim3& blocksize); // No args
 
 void lcWaitForKernel();
 

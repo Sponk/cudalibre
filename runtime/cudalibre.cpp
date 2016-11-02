@@ -171,7 +171,44 @@ void lcWaitForKernel()
 	g_context.queue.finish();
 }
 
-bool lcCallKernel(const char* name, int w, int h, const lcArgumentList& args)
+static int callKernel(cl::Kernel& kernel, const dim3& gridsize, const dim3& blocksize)
+{
+	cl::NDRange localWork;
+	cl::NDRange globalWork;
+
+	if(blocksize.y == 0.0f)
+	{
+		localWork = cl::NDRange(blocksize.x);
+	}
+	else if(blocksize.z == 0.0f)
+	{
+		localWork = cl::NDRange(blocksize.x, blocksize.y);
+	}
+	else
+		localWork = cl::NDRange(blocksize.x, blocksize.y, blocksize.z);
+
+	if(gridsize.y == 0.0f)
+	{
+		globalWork = cl::NDRange(blocksize.x * gridsize.x);
+	}
+	else if(gridsize.z == 0.0f)
+	{
+		globalWork = cl::NDRange(blocksize.x * gridsize.x, blocksize.y * gridsize.y);
+	}
+	else
+		globalWork = cl::NDRange(blocksize.x * gridsize.x, blocksize.y * gridsize.y, blocksize.z * gridsize.z);
+
+	cl::Event event;
+	return g_context.queue.enqueueNDRangeKernel(
+		kernel,
+		cl::NullRange, // Has to be NULL
+		globalWork,
+		localWork,
+		NULL,
+		&event);
+}
+
+bool lcCallKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const lcArgumentList& args)
 {
 	int err;
 	cl::Kernel kernel(g_context.program, name, &err);
@@ -184,32 +221,18 @@ bool lcCallKernel(const char* name, int w, int h, const lcArgumentList& args)
 	}
 
 	cl::Event event;
-	err = g_context.queue.enqueueNDRangeKernel(
-		kernel, 
-		cl::NullRange,
-		cl::NDRange(w, h),
-		cl::NullRange, 
-		NULL, 
-		&event);
+	err = callKernel(kernel, gridsize, blocksize);
 
 	return !checkErr(err, "ComamndQueue::enqueueNDRangeKernel()");
 }
 
-bool lcCallKernel(const char* name, int w, int h)
+bool lcCallKernel(const char* name, const dim3& gridsize, const dim3& blocksize)
 {
 	int err;
 	cl::Kernel kernel(g_context.program, name, &err);
 	checkErr(err, "Kernel::Kernel()");
 
-	cl::Event event;
-	err = g_context.queue.enqueueNDRangeKernel(
-		kernel,
-		cl::NullRange,
-		cl::NDRange(w, h),
-		cl::NullRange,
-		NULL,
-		&event);
-
+	err = callKernel(kernel, gridsize, blocksize);
 	return !checkErr(err, "ComamndQueue::enqueueNDRangeKernel()");
 }
 
