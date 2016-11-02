@@ -237,15 +237,16 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	
-	cppout << "#include <cudalibre.h>" << endl;
+	//cppout << "#include <cudalibre.h>" << endl;
+	cppout << "// The C++ code written by the user" << endl;
+	cppout << cppstream.str() << endl;
 
 	// Write some comment to make understanding the generated code easier
 	cppout << "// Save the CUDA -> OpenCL translated code into a string" << endl;
 	cppout << "static const char* librecuda_clcode = " << stringify(cuda_header) << endl << stringify(clstream.str()) << ";" <<  endl;
 	cppout << endl << "// Use an anonymous namespace to provide an constructor function that sets up the runtime environment." << endl;
 	cppout << "namespace { class LibreCudaInitializer { public: LibreCudaInitializer() { lcSetSources(librecuda_clcode); } } init; }" << endl << endl;
-	cppout << cppstream.str();
-	
+
 	return result;
 }
 
