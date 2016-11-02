@@ -7,7 +7,7 @@ endif()
 add_library(clruntime SHARED cudalibre.cpp cudalibre.h)
 target_link_libraries(clruntime ${OpenCL_LIBRARIES})
 
-set_target_properties(clruntime PROPERTIES PUBLIC_HEADER "cudalibre.h")
+set_target_properties(clruntime PROPERTIES PUBLIC_HEADER "cudalibre.h;cuda_runtime.h")
 
 install(TARGETS clruntime
         EXPORT CudaLibreTargets
