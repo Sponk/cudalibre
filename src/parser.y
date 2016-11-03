@@ -4,7 +4,6 @@
 #include <string>
 #include <sstream>
 #include <fstream>
-#include <cuda_defines.h>
 
 extern "C" int yylex();
 extern "C" int yyparse();
@@ -88,6 +87,8 @@ string& generateKernelCall(string& str)
 %token <sval> DEVICE
 %token SPACE
 %token <sval> KERNEL_CALL
+%token <sval> TYPEDEF
+%token <sval> STRUCT
 
 %type <sval> word
 %type <sval> wordlist
@@ -97,6 +98,7 @@ string& generateKernelCall(string& str)
 %type <sval> device_function
 %type <sval> code_block
 %type <sval> spacelist
+%type <sval> structure
 
 %%
 
@@ -108,6 +110,9 @@ parser:
 file:
 	global_function { /*cppstream << *$1;*/ clstream << "__kernel " << *$1 << endl; delete $1; }
 	| device_function { clstream << *$1 << endl; delete $1; }
+	| STRUCT { clstream << *$1 << endl; cppstream << *$1 << endl; delete $1; }
+	| TYPEDEF { clstream << *$1 << endl; cppstream << *$1 << endl; delete $1; }
+	| KERNEL_CALL { cppstream << generateKernelCall(*$1) << endl; delete $1; }
 	| linelist { cppstream << *$1; delete $1; }
 	| CURLY_OPEN linelist CURLY_CLOSE { cppstream << "{" << *$2 << "}"; delete $2; }
 	;
@@ -139,6 +144,7 @@ linelist: line { $$ = $1; }
 	
 code_block: { $$ = new string(); }
 	| CURLY_OPEN linelist CURLY_CLOSE { *$2 = "{" + *$2 + "}"; $$ = $2; }
+	| linelist CURLY_CLOSE { *$1 += "}"; $$ = $1; }
 
 // global_function does this now
 //global_variable:
@@ -148,22 +154,29 @@ code_block: { $$ = new string(); }
 global_function:
 	GLOBAL line code_block { *$1 += *$2 + *$3; delete $3; delete $2; $$ = $1; }
 	;
-	
+
 device_function:
 	DEVICE line code_block { *$1 += *$2 + *$3; delete $3; delete $2; $$ = $1; }
 	;
 
+structure:
+	STRUCT line code_block { *$1 += *$2 + *$3; delete $3; delete $2; $$ = $1; }
+;
+
 %%
 
-#define LEXER_IMPLEMENTED
+//#define LEXER_IMPLEMENTED
 
-int parse(FILE *fp)
+static bool parserError = false;
+int parse()
 {
-	yyin = fp;
-
+	parserError = false;
 	do {
 #ifdef LEXER_IMPLEMENTED
 		yyparse();
+
+		if(parserError)
+			return 1;
 #else
 		int x;
 		std::cout << "Resulting tokens: ";
@@ -183,70 +196,35 @@ int parse(FILE *fp)
 	return 0;
 }
 
+int parse(FILE *fp)
+{
+	yyin = fp;
+	return parse();
+}
+
+extern void scan_string(const char* str);
+extern int yy_scan_string(const char *);
+extern int yylex_destroy();
+
+int parse(const char* src)
+{
+	currline = 1;
+	parserError = false;
+
+	yy_scan_string(src);
+	yyparse();
+	
+	if(parserError)
+		return 1;
+
+	return 0;
+}
+
 void yyerror(const char *s)
 {
 	std::cout << "Parser error: " << s << " at " << currline << std::endl;
-	std::exit(EXIT_FAILURE);
+	parserError = true;
+	//std::exit(EXIT_FAILURE);
 }
 
-void replacestr(std::string& str, const std::string& search, const std::string& replace)
-{
-	for(size_t idx = 0;; idx += replace.length())
-	{
-		idx = str.find(search, idx);
-		if(idx == string::npos) 
-			break;
-
-		str.erase(idx, search.length());
-		str.insert(idx, replace);
-	}
-}
-
-std::string stringify(const std::string& str)
-{
-	std::string result = str;
-
-	replacestr(result, "\\", "\\\\");
-	replacestr(result, "\"", "\\\"");
-	replacestr(result, "\n", "\\n\"\n\"");
-	
-	return "\"" + result + "\"";
-}
-
-int main(int argc, char **argv) 
-{
-	cout << "LibreCUDA compiler v0.1" << endl;
-	
-	if(argc < 3)
-		return 0;
-	
-	FILE* f = fopen(argv[1], "r");
-	if(!f)
-	{
-		perror("Could not open input file!");
-		return 1;
-	}
-
-	int result = parse(f);
-	
-	ofstream cppout(argv[2]);
-	
-	if(!cppout)
-	{
-		perror("Could not open output file!");
-		return 1;
-	}
-	
-	//cppout << "#include <cudalibre.h>" << endl;
-	cppout << "// The C++ code written by the user" << endl;
-	cppout << cppstream.str() << endl;
-
-	// Write some comment to make understanding the generated code easier
-	cppout << "// Save the CUDA -> OpenCL translated code into a string" << endl;
-	cppout << "static const char* librecuda_clcode = " << stringify(cuda_header) << endl << stringify(clstream.str()) << ";" <<  endl;
-	cppout << endl << "// Use an anonymous namespace to provide an constructor function that sets up the runtime environment." << endl;
-	cppout << "namespace { class LibreCudaInitializer { public: LibreCudaInitializer() { lcSetSources(librecuda_clcode); } } init; }" << endl << endl;
-
-	return result;
-}
 

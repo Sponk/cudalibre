@@ -15,3 +15,5 @@ install(TARGETS clruntime
         LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
         PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}/cudalibre"
         COMPONENT dev)
+
+add_subdirectory(test)

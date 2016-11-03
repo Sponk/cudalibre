@@ -25,7 +25,7 @@ set(INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH "Installation director
 ## Packaging
 set(CPACK_PACKAGE_NAME "${CUDALIBRE_PACKAGE}")
 SET(CPACK_PACKAGE_VENDOR "${CUDALIBRE_VENDOR}")
-SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Neo game engine and editor.")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Open Source implementation of the CUDA compiler and runtime.")
 SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/README.md")
 SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 SET(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
@@ -56,8 +56,7 @@ include("CudaLibre")
 
 add_subdirectory(src)
 add_subdirectory(runtime)
-add_subdirectory(test)
-add_subdirectory(examples)
+# add_subdirectory(examples)
 
 # CMake install package
 export(TARGETS clcc clruntime FILE "${PROJECT_BINARY_DIR}/CudaLibreTargets.cmake")

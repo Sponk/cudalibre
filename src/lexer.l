@@ -21,6 +21,12 @@ using namespace std;
 __global__[ \t].+ { yylval.sval = new string(yytext); return GLOBAL; }
 __device__[ \t].+ { yylval.sval = new string(yytext); return DEVICE; }
 
+struct[ \t]+(.*|\n|\{)*\}; { yylval.sval = new string(yytext); return STRUCT; }
+
+typedef[ \t]+((struct[ \t]+)?(.*|\n|\{)*\}(.+)?;) { yylval.sval = new string(yytext); return TYPEDEF; }
+
+typedef[ \t].+ { yylval.sval = new string(yytext); return TYPEDEF; }
+
 [a-zA-Z_]+<<<[a-zA-Z0-9_]+,\ [a-zA-Z0-9_]+>>>\(.*\); { yylval.sval = new std::string(yytext); return KERNEL_CALL; }
 
 "{" return CURLY_OPEN;
@@ -33,3 +39,8 @@ __device__[ \t].+ { yylval.sval = new string(yytext); return DEVICE; }
 /*[ ] { return 0; }
   \t { return 0; }
 */
+
+void scan_string(const char* str)
+{
+    yy_switch_to_buffer(yy_scan_string(str));
+}
