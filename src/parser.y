@@ -92,6 +92,7 @@ string& generateKernelCall(string& str)
 %token <sval> KERNEL_CALL
 %token <sval> TYPEDEF
 %token <sval> STRUCT
+%token <sval> INCLUDE
 
 %type <sval> word
 %type <sval> wordlist
@@ -115,6 +116,7 @@ file:
 	| device_function { clstream << *$1 << endl; delete $1; }
 	| STRUCT { clstream << *$1 << endl; cppstream << *$1 << endl; delete $1; }
 	| TYPEDEF { clstream << *$1 << endl; cppstream << *$1 << endl; delete $1; }
+	| INCLUDE { clstream << *$1 << endl; cppstream << *$1 << endl; delete $1; }
 	| KERNEL_CALL { cppstream << generateKernelCall(*$1) << endl; delete $1; }
 	| linelist { cppstream << *$1; delete $1; }
 	| CURLY_OPEN linelist CURLY_CLOSE { cppstream << "{" << *$2 << "}"; delete $2; }
@@ -190,8 +192,7 @@ string runPreprocessor(const string& src)
 
 		dup2(fdParentChild[0], STDIN_FILENO);
 		dup2(fdChildParent[1], STDOUT_FILENO);
-
-		execl("/usr/bin/cpp", "/usr/bin/cpp", "-P", (char*) 0);
+		execl("/usr/bin/cpp", "/usr/bin/cpp", "-P", "-x", "c++", "-nostdinc", "-nostdinc++", "-I", CUDALIBRE_STANDARD_INCLUDES, (char*) 0);
 	}
 	else // Parent
 	{

@@ -14,6 +14,7 @@
 extern int currline;
 using namespace std;
 
+//  TODO: Currently only allows including files that follow the *.cu.h convention into OpenCL
 %}
 
 %%
@@ -24,10 +25,12 @@ __device__[ \t].+ { yylval.sval = new string(yytext); return DEVICE; }
 struct[ \t]+(.*|\n|\{)*\}; { yylval.sval = new string(yytext); return STRUCT; }
 
 typedef[ \t]+((struct[ \t]+)?(.*|\n|\{)*\}(.+)?;) { yylval.sval = new string(yytext); return TYPEDEF; }
-
 typedef[ \t].+ { yylval.sval = new string(yytext); return TYPEDEF; }
 
 [a-zA-Z_]+<<<[a-zA-Z0-9_]+,\ [a-zA-Z0-9_]+>>>\(.*\); { yylval.sval = new std::string(yytext); return KERNEL_CALL; }
+
+#include[ \t].+\.cu.* { yylval.sval = new std::string(yytext); return INCLUDE; }
+#define[ \t].+ { yylval.sval = new std::string(yytext); return INCLUDE; }
 
 "{" return CURLY_OPEN;
 "}" return CURLY_CLOSE;
