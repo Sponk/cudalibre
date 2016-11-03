@@ -28,6 +28,15 @@ enum cudaComputeMode
 	cudaComputeModeProhibited
 };
 
+enum cudaMemcpyKind
+{
+	cudaMemcpyHostToHost,
+	cudaMemcpyHostToDevice,
+	cudaMemcpyDeviceToHost,
+	cudaMemcpyDeviceToDevice,
+	cudaMemcpyDefault
+};
+
 struct dim3
 {
 	dim3(float x, float y, float z)
@@ -45,6 +54,13 @@ struct dim3
 	float y;
 	float z;
 };
+
+typedef struct
+{
+
+}cudaEvent_t;
+
+typedef int cudaStream_t;
 
 struct cudaDeviceProp 
 {
@@ -78,6 +94,17 @@ struct cudaDeviceProp
 
 cudaError_t cudaGetDeviceCount(int* count);
 cudaError_t cudaGetDeviceProperties(struct cudaDeviceProp* prop, int device);
+cudaError_t cudaGetLastError();
+const char* cudaGetErrorString(cudaError_t err);
+cudaError_t cudaMallocPitch(void** devPtr, size_t* pitch, size_t width, size_t height);
+cudaError_t cudaFree(void* devPtr);
+cudaError_t cudaMemcpy2D(void* dst, size_t dpitch, const void* src, size_t spitch, size_t width, size_t height, cudaMemcpyKind kind);
+cudaError_t cudaEventCreate(cudaEvent_t* event);
+cudaError_t cudaEventRecord(cudaEvent_t event, cudaStream_t stream = 0);
+cudaError_t cudaEventSynchronize(cudaEvent_t event);
+cudaError_t cudaEventElapsedTime(float* ms, cudaEvent_t start, cudaEvent_t end);
+cudaError_t cudaEventDestroy(cudaEvent_t event);
+cudaError_t cudaSetDevice(int device);
 
 /// Non-CUDA functions
 

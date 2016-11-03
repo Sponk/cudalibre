@@ -16,7 +16,10 @@
 
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 #include <cstdarg>
+
+#define STUB cout << "Stub: " << __func__ << " " << __FILE__ << " " << __LINE__ << endl
 
 using namespace std;
 
@@ -56,6 +59,9 @@ public:
 	cl::Context clcontext;
 	std::vector<cl::Platform> platforms;
 	std::vector<cl::Device> devices;
+
+	size_t bufferHeapIndex = 0;
+	std::unordered_map<size_t, cl::Buffer> bufferHeap;
 	
 	size_t currentDevice;
 	
@@ -134,6 +140,17 @@ inline const char* lcGetErrorString(cl_int error)
 		case -1005: return "CL_D3D10_RESOURCE_NOT_ACQUIRED_KHR";
 		default: return "Unknown OpenCL error";
 	}
+}
+
+// TODO: Implement error conversion!
+cudaError_t clerr2cuderr(int err)
+{
+	switch(err)
+	{
+		case 0: return cudaSuccess;
+	}
+
+	return libreCudaErrorNotImplemented;
 }
 
 inline bool checkErr(cl_int err, const char* name) 
@@ -217,7 +234,12 @@ bool lcCallKernel(const char* name, const dim3& gridsize, const dim3& blocksize,
 	int i = 0;
 	for(auto p : args)
 	{
-		kernel.setArg(i++, p.first, p.second);
+		// Check if variable is a valid handle
+		auto bufiter = g_context.bufferHeap.find(*static_cast<size_t*>(p.second));
+		if(bufiter != g_context.bufferHeap.end())
+			kernel.setArg(i++, bufiter->second);
+		else
+			kernel.setArg(i++, p.first, p.second);
 	}
 
 	cl::Event event;
@@ -278,4 +300,93 @@ cudaError_t cudaSetDevice(int device)
 	
 	g_context.currentDevice = device;
 	return cudaSuccess;
+}
+
+cudaError_t cudaGetLastError()
+{
+	STUB;
+	return libreCudaErrorNotImplemented;
+}
+
+const char* cudaGetErrorString(cudaError_t err)
+{
+	STUB;
+	return "Unknown Error";
+}
+
+cudaError_t cudaMallocPitch(void** devPtr, size_t* pitch, size_t width, size_t height)
+{
+	int err = 0;
+
+	cl::Buffer& buf = g_context.bufferHeap[++g_context.bufferHeapIndex];
+	buf = cl::Buffer(g_context.clcontext, CL_MEM_READ_WRITE, width * height, NULL, &err);
+
+	*pitch = width; // FIXME: Setting pitch to the simple value. Should figure out the HW optimal value!
+	*devPtr = (void*) g_context.bufferHeapIndex; // Hand out the handle to the buffer
+
+	return clerr2cuderr(err);
+}
+
+cudaError_t cudaFree(void* devPtr)
+{
+	auto bufiter = g_context.bufferHeap.find(reinterpret_cast<size_t>(devPtr));
+	if(bufiter == g_context.bufferHeap.end())
+		return cudaErrorMemoryAllocation;
+
+	g_context.bufferHeap.erase(bufiter);
+	return cudaSuccess;
+}
+
+cudaError_t cudaMemcpy2D(void* dst, size_t dpitch, const void* src, size_t spitch, size_t width, size_t height, cudaMemcpyKind kind)
+{
+	int err = 0;
+
+	auto bufiter = g_context.bufferHeap.find(reinterpret_cast<size_t>(dst));
+	if(bufiter == g_context.bufferHeap.end())
+		return cudaErrorMemoryAllocation;
+
+	switch(kind)
+	{
+		case cudaMemcpyHostToDevice: // FIXME: Should this be blocking or asynchronous?
+			err = g_context.queue.enqueueWriteBuffer(bufiter->second, CL_TRUE, 0, width * height, src, NULL, NULL);
+			break;
+
+		case cudaMemcpyDeviceToHost:
+			err = g_context.queue.enqueueReadBuffer(bufiter->second, CL_TRUE, 0, width * height, dst, NULL, NULL);
+			break;
+
+		default: return libreCudaErrorNotImplemented;
+	}
+
+	return clerr2cuderr(err);
+}
+
+cudaError_t cudaEventCreate(cudaEvent_t* event)
+{
+	STUB;
+	return libreCudaErrorNotImplemented;
+}
+
+cudaError_t cudaEventRecord(cudaEvent_t event, cudaStream_t stream)
+{
+	STUB;
+	return libreCudaErrorNotImplemented;
+}
+
+cudaError_t cudaEventSynchronize(cudaEvent_t event)
+{
+	STUB;
+	return libreCudaErrorNotImplemented;
+}
+
+cudaError_t cudaEventElapsedTime(float* ms, cudaEvent_t start, cudaEvent_t end)
+{
+	STUB;
+	return libreCudaErrorNotImplemented;
+}
+
+cudaError_t cudaEventDestroy(cudaEvent_t event)
+{
+	STUB;
+	return libreCudaErrorNotImplemented;
 }
