@@ -4,6 +4,9 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <unistd.h>
+#include <sys/types.h>
+#include <cuda_defines.h>
 
 extern "C" int yylex();
 extern "C" int yyparse();
@@ -165,11 +168,62 @@ structure:
 
 %%
 
-//#define LEXER_IMPLEMENTED
+#define LEXER_IMPLEMENTED
+
+string runPreprocessor(const string& src)
+{
+	int fdParentChild[2];
+	int fdChildParent[2];
+
+	pipe(fdParentChild);
+	pipe(fdChildParent);
+
+	pid_t pid = fork();
+	if(pid == -1)
+		return src;
+
+	// Child
+	if(!pid)
+	{
+		close(fdParentChild[1]);
+		close(fdChildParent[0]);
+
+		dup2(fdParentChild[0], STDIN_FILENO);
+		dup2(fdChildParent[1], STDOUT_FILENO);
+
+		execl("/usr/bin/cpp", "/usr/bin/cpp", "-P", (char*) 0);
+	}
+	else // Parent
+	{
+		close(fdParentChild[0]);
+		close(fdChildParent[1]);
+	}
+
+	FILE* out = fdopen(fdParentChild[1], "w");
+	fputs(src.c_str(), out);
+	fflush(out);
+	fclose(out);
+	close(fdParentChild[1]);
+
+
+	FILE* product = fdopen(fdChildParent[0], "r");
+	string result;
+
+	while(!feof(product))
+		result += fgetc(product);
+
+	fclose(product);
+
+	// Remove EOF character
+	result.erase(result.end() - 1);
+
+	return result;
+}
 
 static bool parserError = false;
 int parse()
 {
+	clstream << cuda_header << endl;
 	parserError = false;
 	do {
 #ifdef LEXER_IMPLEMENTED
@@ -191,6 +245,9 @@ int parse()
 #ifndef LEXER_IMPLEMENTED
 	std::exit(EXIT_SUCCESS);
 #endif
+
+	std::string clcode = clstream.str();
+	clstream.str(runPreprocessor(clcode));
 
 	// cout << "Produced C++: " << endl << cppstream.str() << endl << "OpenCL: " << endl << clstream.str() << endl;
 	return 0;
@@ -215,8 +272,13 @@ int parse(const char* src)
 	yyparse();
 	
 	if(parserError)
+	{
+		cout << "Parser error!" << endl;
 		return 1;
+	}
 
+	std::string clcode = clstream.str();
+	clstream.str(runPreprocessor(clcode));
 	return 0;
 }
 

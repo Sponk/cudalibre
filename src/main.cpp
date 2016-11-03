@@ -3,7 +3,6 @@
 #include <sstream>
 #include <fstream>
 #include <iostream>
-#include <cuda_defines.h>
 
 using namespace std;
 extern stringstream cppstream, clstream;
@@ -36,7 +35,7 @@ std::string stringify(const std::string& str)
 
 int main(int argc, char **argv)
 {
-	cout << "LibreCUDA compiler v0.1" << endl;
+	// cout << "LibreCUDA compiler v0.1" << endl;
 
 	if(argc < 3)
 		return 0;
@@ -49,7 +48,6 @@ int main(int argc, char **argv)
 	}
 
 	int result = parse(f);
-
 	ofstream cppout(argv[2]);
 
 	if(!cppout)
@@ -64,7 +62,7 @@ int main(int argc, char **argv)
 
 	// Write some comment to make understanding the generated code easier
 	cppout << "// Save the CUDA -> OpenCL translated code into a string" << endl;
-	cppout << "static const char* librecuda_clcode = " << stringify(cuda_header) << endl << stringify(clstream.str()) << ";" <<  endl;
+	cppout << "static const char* librecuda_clcode = " << stringify(clstream.str()) << ";" <<  endl;
 	cppout << endl << "// Use an anonymous namespace to provide an constructor function that sets up the runtime environment." << endl;
 	cppout << "namespace { class LibreCudaInitializer { public: LibreCudaInitializer() { lcSetSources(librecuda_clcode); } } init; }" << endl << endl;
 
