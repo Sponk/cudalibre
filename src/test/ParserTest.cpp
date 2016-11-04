@@ -74,3 +74,12 @@ TEST(Parser, KernelCall)
 	EXPECT_STREQ("lcCallKernel(\"kernel\", 32, 12, lcArgumentList({LC_KERNEL_ARG(a), LC_KERNEL_ARG( b), LC_KERNEL_ARG( c)}));\n\n"
 	, cppstream.str().c_str());
 }
+
+TEST(Parser, Include)
+{
+	cppstream.str("");
+	clstream.str("");
+	EXPECT_FALSE(parse("#include \"test.h\"\n"));
+	EXPECT_FALSE(cppstream.str().empty());
+	EXPECT_TRUE(clstream.str().empty());
+}

@@ -37,7 +37,9 @@ public:
 		
 		std::string name;
 		platforms[0].getInfo(CL_PLATFORM_NAME, &name);
-		cout << "Found " << platforms.size() << " OpenCL platforms. Using " << name << " as default." << endl;
+		cout << "Found " << platforms.size() << " OpenCL platforms. Using "
+			 << name << " (version " << platforms[0].getInfo<CL_PLATFORM_VERSION>()
+			 << ") as default." << endl;
 		
 		// Initialize context
 		cl_context_properties properties[3] = { CL_CONTEXT_PLATFORM, (cl_context_properties)(platforms[0])(), 0 };
@@ -45,7 +47,9 @@ public:
 		
 		// Get devices
 		devices = clcontext.getInfo<CL_CONTEXT_DEVICES>();
-		cout << "Found " << devices.size() << " OpenCL devices. Using " << devices[0].getInfo<CL_DEVICE_NAME>() << " as default." << endl;
+		cout << "Found " << devices.size() << " OpenCL devices. Using "
+			 << devices[0].getInfo<CL_DEVICE_NAME>()
+			 << " (version " << devices[0].getInfo<CL_DEVICE_VERSION>() << ") as default." << endl;
 		
 		queue = cl::CommandQueue(clcontext, devices[0], 0, NULL);
 	}
