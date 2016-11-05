@@ -6,7 +6,7 @@
 #include <OpenCL/opencl.hpp>
 #else
 
-#ifndef USE_CL1
+#if !defined(USE_CL1) && !defined(WIN32) && !defined(__CYGWIN__)
 #include <CL/cl2.hpp>
 #else
 #include <CL/cl.hpp>
@@ -19,7 +19,11 @@
 #include <unordered_map>
 #include <cstdarg>
 
+#ifdef WIN32
+#define STUB cout << "Stub: " << __FUNCTION__ << " " << __FILE__ << " " << __LINE__ << endl
+#else
 #define STUB cout << "Stub: " << __func__ << " " << __FILE__ << " " << __LINE__ << endl
+#endif
 
 using namespace std;
 
@@ -169,7 +173,7 @@ inline bool checkErr(cl_int err, const char* name)
 
 bool lcSetSources(const char* sources)
 {
-#ifndef USE_CL1
+#if !defined(USE_CL1) && !defined(WIN32)
 	cl::Program::Sources source(1, sources); //source(1, std::make_pair(sources, strlen(sources) + 1));
 #else
 	cl::Program::Sources source(1, std::make_pair(sources, strlen(sources) + 1));

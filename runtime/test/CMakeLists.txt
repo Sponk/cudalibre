@@ -1,4 +1,4 @@
-find_package(GTest REQUIRED)
+find_package(GTest)
 
 include_directories(
 		${GTEST_INCLUDE_DIRS}
@@ -7,4 +7,4 @@ include_directories(
 )
 
 add_executable(runtime-tests main.cpp EnumerationTest.cpp KernelTest.cpp)
-target_link_libraries(runtime-tests clruntime ${GTEST_LIBRARIES} pthread)
+target_link_libraries(runtime-tests clruntime ${GTEST_LIBRARIES})

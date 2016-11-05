@@ -127,7 +127,7 @@ void lcWaitForKernel();
 
 // We don't need to actually copy the arguments since OpenCL does not keep the pointer
 // and copies the data for itself.
-#define LC_KERNEL_ARG(x) {sizeof(x), lcAddressOf<typeof(x)>(x)}
+#define LC_KERNEL_ARG(x) {sizeof(x), lcAddressOf<decltype(x)>(x)}
 template<typename T> void* lcAddressOf(const T& src) { /*T* t = (T*) malloc(sizeof(T)); memcpy(t, &src, sizeof(T)); return t;*/ return (void*) &src; }
 
 #endif

@@ -51,9 +51,12 @@ set(CMAKE_CXX_STANDARD 11)
 set(CLCC_EXECUTABLE ${CMAKE_BINARY_DIR}/src/clcc)
 set(LibreCuda_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/runtime)
 set(LibreCuda_LIBRARIES clruntime)
+set(GTEST_LIBRARIES gtest)
+set(GTEST_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/gtest/googletest/src)
 
 include("CudaLibre")
 
+add_subdirectory(gtest)
 add_subdirectory(src)
 add_subdirectory(runtime)
 # add_subdirectory(examples)

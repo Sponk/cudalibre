@@ -11,6 +11,13 @@
 #define YY_DECL extern "C" int yylex()
 #define YY_NO_UNPUT
 
+#ifdef WIN32
+#define YY_NO_UNISTD_H
+
+#include <io.h> // _isatty
+#define isatty _isatty
+#endif
+
 extern int currline;
 using namespace std;
 

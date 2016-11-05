@@ -4,9 +4,16 @@
 #include <string>
 #include <sstream>
 #include <fstream>
-#include <unistd.h>
 #include <sys/types.h>
 #include <cuda_defines.h>
+
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
+#ifndef CUDALIBRE_STANDARD_INCLUDES
+#define CUDALIBRE_STANDARD_INCLUDES "./"
+#endif
 
 extern "C" int yylex();
 extern "C" int yyparse();
@@ -172,6 +179,7 @@ structure:
 
 #define LEXER_IMPLEMENTED
 
+#ifndef WIN32
 string runPreprocessor(const string& src)
 {
 	int fdParentChild[2];
@@ -220,6 +228,12 @@ string runPreprocessor(const string& src)
 
 	return result;
 }
+#else
+string runPreprocessor(const string& src)
+{
+	return src;
+}
+#endif
 
 static bool parserError = false;
 int parse()
@@ -268,8 +282,11 @@ int parse(const char* src)
 {
 	currline = 1;
 	parserError = false;
-
+	
+#ifndef WIN32
 	yy_scan_string(src);
+#endif
+
 	yyparse();
 	
 	if(parserError)
