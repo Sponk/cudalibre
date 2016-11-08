@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <cuda_runtime.h>
 
-__global__ void testkernel(__global float* a, __global float* b, __global float* c)
+__global__ void testkernel(__device__ float* a, __device__ float* b, __device__ float* c)
 {
 	unsigned int id = threadIdx.x;
 	c[id] = a[id] + b[id];

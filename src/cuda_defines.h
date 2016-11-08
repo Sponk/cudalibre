@@ -3,6 +3,7 @@
 const char* cuda_header =
 	"#define __constant__ __constant\n"
 	"#define __shared__ __local\n"
+	"#define __device__ __global\n"
 	"#define gridDim (num_groups2dim3())\n"
 	"#define blockDim (local_size2dim3())\n"
 	"#define blockIdx (group_id2dim3())\n"
