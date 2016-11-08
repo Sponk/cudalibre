@@ -15,7 +15,7 @@ TEST(KernelTest, PrintfKernel)
 							 "}\n");
 
 	std::cout << std::endl;
-	EXPECT_TRUE(lcCallKernel("test", 4, 4));
+	EXPECT_TRUE(callKernel("test", 4, 4));
 	cudaDeviceSynchronize();
 	resetCudaLibre();
 }
@@ -31,7 +31,10 @@ TEST(KernelTest, PrintfKernelArg)
 
 	std::cout << std::endl;
 
-	EXPECT_TRUE(lcCallKernel("test", 4, 4, ArgumentList({CU_KERNEL_ARG(12), CU_KERNEL_ARG(42.0f), CU_KERNEL_ARG(3.1415f)})));
+	EXPECT_TRUE(callKernel("test",
+						   4,
+						   4,
+						   ArgumentList({CU_KERNEL_ARG(12), CU_KERNEL_ARG(42.0f), CU_KERNEL_ARG(3.1415f)})));
 	cudaDeviceSynchronize();
 	resetCudaLibre();
 }
@@ -56,7 +59,7 @@ TEST(KernelTest, UpDownTest)
 	ASSERT_EQ(cudaSuccess, cudaMallocPitch((void**) &devArray, &pitch, sizeof(float), testArraySize));
 	ASSERT_EQ(cudaSuccess, cudaMemcpy2D(devArray, pitch, array, sizeof(float), sizeof(float), testArraySize, cudaMemcpyHostToDevice));
 
-	EXPECT_TRUE(lcCallKernel("test", 1, testArraySize, ArgumentList({CU_KERNEL_ARG(devArray), CU_KERNEL_ARG(1)})));
+	EXPECT_TRUE(callKernel("test", 1, testArraySize, ArgumentList({CU_KERNEL_ARG(devArray), CU_KERNEL_ARG(1)})));
 	cudaDeviceSynchronize();
 
 	delete[] array;

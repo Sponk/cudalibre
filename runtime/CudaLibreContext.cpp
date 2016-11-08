@@ -118,27 +118,31 @@ cu::CudaLibreContext::CudaLibreContext()
 
 	std::vector<cl::Platform> platforms;
 	std::vector<cl::Device> devices;
+	int err = 0;
 
-	cout << "Initializing OpenCL..." << endl;
+	// cout << "Initializing OpenCL..." << endl;
 
 	// Find platforms
 	cl::Platform::get(&platforms);
 
 	std::string name;
 	platforms[platform].getInfo(CL_PLATFORM_NAME, &name);
-	cout << "Found " << platforms.size() << " OpenCL platforms. Using "
+	/*cout << "Found " << platforms.size() << " OpenCL platforms. Using "
 		 << name << " (version " << platforms[platform].getInfo<CL_PLATFORM_VERSION>()
-		 << ") as default." << endl;
+		 << ") as default." << endl;*/
 
 	// Initialize context
 	cl_context_properties properties[3] = { CL_CONTEXT_PLATFORM, (cl_context_properties)(platforms[platform])(), 0 };
-	clcontext = cl::Context(CL_DEVICE_TYPE_ALL, properties, nullptr, nullptr, nullptr); // FIXME: Check for error!
+	clcontext = cl::Context(CL_DEVICE_TYPE_ALL, properties, nullptr, nullptr, &err); // FIXME: Check for error!
+
+	if(checkErr(err, "Context::Context()"))
+		return;
 
 	// Get devices
 	devices = clcontext.getInfo<CL_CONTEXT_DEVICES>();
-	cout << "Found " << devices.size() << " OpenCL devices. Using "
+	/*cout << "Found " << devices.size() << " OpenCL devices. Using "
 		 << devices[device].getInfo<CL_DEVICE_NAME>()
-		 << " (version " << devices[device].getInfo<CL_DEVICE_VERSION>() << ") as default." << endl;
+		 << " (version " << devices[device].getInfo<CL_DEVICE_VERSION>() << ") as default." << endl;*/
 
 	for(auto d : devices)
 	{

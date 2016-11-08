@@ -1,16 +1,37 @@
 #include <stdio.h>
+#include <cuda_runtime.h>
 
-__global__ void testkernel(int j, float f)
+__global__ void testkernel(__global float* a, __global float* b, __global float* c)
 {
-	printf("gridDim: %f %f %f blockDim: %f %f %f "
-			"blockIdx: %f %f %f threadIdx: %f %f %f\n",
-			gridDim.x, gridDim.y, gridDim.z,
-			blockDim.x, blockDim.y, blockDim.z,
-			blockIdx.x, blockIdx.y, blockIdx.z,
-			threadIdx.x, threadIdx.y, threadIdx.z);
+	unsigned int id = threadIdx.x;
+	c[id] = a[id] + b[id];
 }
 
+#define TESTSIZE 32
 int main(int argc, char* argv[])
 {
-	testkernel<<<4, 4>>>(12, 32.00f);
+	float *da, *db, *dc, *a, *b, *c;
+
+	size_t pitch;
+
+   	cudaMallocPitch((void**) &da, &pitch, sizeof(float), TESTSIZE);
+   	cudaMallocPitch((void**) &db, &pitch, sizeof(float), TESTSIZE);
+   	cudaMallocPitch((void**) &dc, &pitch, sizeof(float), TESTSIZE);
+
+   	a = new float[TESTSIZE];
+   	b = new float[TESTSIZE];
+   	c = new float[TESTSIZE];
+
+   	for(int i = 0; i < TESTSIZE; i++) a[i] = i;
+	for(int i = 0; i < TESTSIZE; i++) b[i] = i;
+
+   	cudaMemcpy2D(da, pitch, a, sizeof(float), sizeof(float), TESTSIZE, cudaMemcpyHostToDevice);
+	cudaMemcpy2D(db, pitch, b, sizeof(float), sizeof(float), TESTSIZE, cudaMemcpyHostToDevice);
+
+	testkernel<<<1, TESTSIZE>>>(da, db, dc);
+
+	cudaMemcpy2D(dc, pitch, c, sizeof(float), sizeof(float), TESTSIZE, cudaMemcpyDeviceToHost);
+
+	for(int i = 0; i < TESTSIZE; i++)
+		printf("%f + %f = %f\n", a[i], b[i], c[i]);
 }

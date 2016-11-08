@@ -49,7 +49,7 @@ string& generateKernelCall(string& str)
 	stringstream ss;
 	string tmp = str;
 	tmp.erase(tmp.find("<<<"));
-	ss << "lcCallKernel(\"" << tmp << "\", ";
+	ss << "cu::callKernel(\"" << tmp << "\", ";
 	
 	tmp = str;
 	tmp = tmp.substr(tmp.find("<<<") + 3);
@@ -67,9 +67,9 @@ string& generateKernelCall(string& str)
 		vector<string> args;
 		splitstr(tmp, ',', args);
 
-		ss << ", lcArgumentList({";
+		ss << ", cu::ArgumentList({";
 		for(int i = 0; i < args.size(); i++)
-			ss << "LC_KERNEL_ARG(" << args[i] << ((i == args.size() - 1) ? ")" : "), ");
+			ss << "CU_KERNEL_ARG(" << args[i] << ((i == args.size() - 1) ? ")" : "), ");
 			//ss << "{ sizeof(" << args[i] << "), " << args[i] << "}" << ((i == args.size() - 1) ? "" : ", ");
 
 		//ss << "{0, nullptr}}";

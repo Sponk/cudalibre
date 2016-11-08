@@ -59,7 +59,7 @@ include("CudaLibre")
 add_subdirectory(gtest)
 add_subdirectory(src)
 add_subdirectory(runtime)
-#add_subdirectory(examples)
+add_subdirectory(examples)
 
 # CMake install package
 export(TARGETS clcc clruntime FILE "${PROJECT_BINARY_DIR}/CudaLibreTargets.cmake")

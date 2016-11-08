@@ -30,34 +30,39 @@ using namespace cu;
 
 static shared_ptr<cu::CudaLibreContext> g_context = nullptr;
 
+#define ENSURE_INIT { if(g_context == nullptr) { g_context = make_shared<cu::CudaLibreContext>(); g_context->addSources(initialSources); }}
+
 namespace cu
 {
+
+static const char* initialSources;
+
 void initCudaLibre(const char* sources)
 {
-	if (g_context == nullptr)
-		g_context = make_shared<cu::CudaLibreContext>();
-
-	g_context->addSources(sources);
+	initialSources = sources;
 }
 
 void resetCudaLibre()
 {
-	g_context->clearSources();
+	g_context = nullptr;
 }
 
-bool lcCallKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const cu::ArgumentList& args)
+bool callKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const cu::ArgumentList& args)
 {
+	ENSURE_INIT;
 	return cudaSuccess == g_context->getCurrentDevice().callKernel(name, gridsize, blocksize, args);
 }
 
-bool lcCallKernel(const char* name, const dim3& gridsize, const dim3& blocksize)
+bool callKernel(const char* name, const dim3& gridsize, const dim3& blocksize)
 {
+	ENSURE_INIT;
 	return cudaSuccess == g_context->getCurrentDevice().callKernel(name, gridsize, blocksize);
 }
 }
 
 cudaError_t cudaGetDeviceCount(int* count)
 {
+	ENSURE_INIT;
 	*count = g_context->getNumDevices();
 	return cudaSuccess;
 }
@@ -66,11 +71,13 @@ cudaError_t cudaGetDeviceCount(int* count)
 /// TODO: Not all fields are filled in yet!
 cudaError_t cudaGetDeviceProperties(struct cudaDeviceProp* prop, int device)
 {
+	ENSURE_INIT;
 	return g_context->getDeviceProperties(prop, device);
 }
 
 cudaError_t cudaSetDevice(int device)
 {
+	ENSURE_INIT;
 	return g_context->setCurrentDevice(device);
 }
 
@@ -88,21 +95,25 @@ const char* cudaGetErrorString(cudaError_t err)
 
 cudaError_t cudaDeviceSynchronize()
 {
+	ENSURE_INIT;
 	return g_context->getCurrentDevice().deviceSynchronize();
 }
 
 cudaError_t cudaMallocPitch(void** devPtr, size_t* pitch, size_t width, size_t height)
 {
+	ENSURE_INIT;
 	return g_context->getCurrentDevice().mallocPitch(devPtr, pitch, width, height);
 }
 
 cudaError_t cudaFree(void* devPtr)
 {
+	ENSURE_INIT;
 	return g_context->getCurrentDevice().free(devPtr);
 }
 
 cudaError_t cudaMemcpy2D(void* dst, size_t dpitch, const void* src, size_t spitch, size_t width, size_t height, cudaMemcpyKind kind)
 {
+	ENSURE_INIT;
 	return g_context->getCurrentDevice().memcpy2D(dst, dpitch, src, spitch, width, height, kind);
 }
 

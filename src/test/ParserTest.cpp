@@ -71,7 +71,7 @@ TEST(Parser, KernelCall)
 	EXPECT_FALSE(cppstream.str().empty());
 	EXPECT_TRUE(clstream.str().empty());
 
-	EXPECT_STREQ("lcCallKernel(\"kernel\", 32, 12, ArgumentList({CU_KERNEL_ARG(a), CU_KERNEL_ARG( b), CU_KERNEL_ARG( c)}));\n\n"
+	EXPECT_STREQ("callKernel(\"kernel\", 32, 12, ArgumentList({CU_KERNEL_ARG(a), CU_KERNEL_ARG( b), CU_KERNEL_ARG( c)}));\n\n"
 	, cppstream.str().c_str());
 }
 

@@ -140,6 +140,8 @@ cudaError_t cu::CudaDevice::mallocPitch(void** devPtr, size_t* pitch, size_t wid
 	cl::Buffer& buf = bufferHeap[++bufferHeapIndex];
 	buf = cl::Buffer(context, CL_MEM_READ_WRITE, width * height, NULL, &err);
 
+	checkErr(err, "Buffer::Buffer()");
+
 	*pitch = width; // FIXME: Setting pitch to the simple value. Should figure out the HW optimal value!
 	*devPtr = (void*) bufferHeapIndex; // Hand out the handle to the buffer
 
@@ -161,12 +163,13 @@ cudaError_t cu::CudaDevice::memcpy2D(void* dst, size_t dpitch, const void* src, 
 			break;
 
 		case cudaMemcpyDeviceToHost:
-			err = queue.enqueueReadBuffer(bufiter->second, CL_TRUE, 0, width * height, dst, NULL, NULL);
+			err = queue.enqueueReadBuffer(bufiter->second, CL_TRUE, 0, width * height, (void*) src, NULL, NULL);
 			break;
 
 		default: return cudaErrorNotImplemented;
 	}
 
+	checkErr(err, "memcpy2D");
 	return clerr2cuderr(err);
 }
 
