@@ -53,6 +53,10 @@ cudaError_t cu::CudaDevice::buildKernel(const char* sources)
 static inline void calculateWorksize(const dim3& gridsize, const dim3& blocksize,
 									 	cl::NDRange& local, cl::NDRange& global)
 {
+	DEBUG("localWork %d %d %d globalWork %d %d %d",
+		  blocksize.x, blocksize.y, blocksize.z,
+		  blocksize.x * gridsize.x, blocksize.y * gridsize.y, blocksize.z * gridsize.z);
+
 	if (blocksize.y == 0.0f)
 	{
 		local = cl::NDRange(blocksize.x);
@@ -78,6 +82,8 @@ static inline void calculateWorksize(const dim3& gridsize, const dim3& blocksize
 
 cudaError_t cu::CudaDevice::callKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const cu::ArgumentList& args)
 {
+	DEBUG("gridsize %d %d %d blocksize %d %d %d", gridsize.x, gridsize.y, gridsize.z, blocksize.x, blocksize.y, blocksize.z);
+
 	int err = 0;
 
 	// Make sure the kernelcode has been built

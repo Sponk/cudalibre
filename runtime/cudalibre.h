@@ -22,6 +22,15 @@
 
 #include "cuda_runtime.h"
 
+#define __DEBUG__
+#ifdef __DEBUG__
+#define DEBUG(format, ...) fprintf(stdout, "Debug in %s at %d: " format "\n", __FILE__, __LINE__, ## __VA_ARGS__ )
+
+//#define DEBUG(format, ...) fprintf (stderr, format, ## __VA_ARGS__)
+#else
+#define DEBUG(format, ...)
+#endif
+
 /// Non-CUDA functions
 // We don't need to actually copy the arguments since OpenCL does not keep the pointer
 // and copies the data for itself.

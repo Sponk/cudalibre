@@ -11,7 +11,7 @@ const char* cuda_header =
 	"#define __syncthreads barrier\n"
 	"#define __threadfence_block() mem_fence(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE)\n"
 	"#define __global__\n"
-	"typedef struct { float x; float y; float z; } dim3;\n"
+	"typedef struct { int x; int y; int z; } dim3;\n"
 	"dim3 num_groups2dim3() {\n"
 	"\tdim3 dim;\n"
 	"\tdim.x = get_num_groups(0);\n"

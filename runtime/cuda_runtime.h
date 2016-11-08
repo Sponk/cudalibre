@@ -29,20 +29,20 @@ enum cudaMemcpyKind
 
 struct dim3
 {
-	dim3(float x, float y, float z)
+	dim3(int x, int y, int z)
 		: x(x), y(y), z(z) {}
 
-	dim3(float x, float y)
+	dim3(int x, int y)
 		: x(x), y(y), z(0) {}
 
-	dim3(float x)
+	dim3(int x)
 		: x(x), y(0), z(0) {}
 
 	dim3() : x(0), y(0), z(0) {}
 
-	float x;
-	float y;
-	float z;
+	int x;
+	int y;
+	int z;
 };
 
 typedef struct
@@ -106,3 +106,4 @@ cudaError_t cudaSetDevice(int device);
  * @return cudaSuccess
  */
 cudaError_t cudaDeviceSynchronize();
+cudaError_t cudaThreadSynchronize();

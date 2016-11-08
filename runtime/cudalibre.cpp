@@ -84,7 +84,7 @@ cudaError_t cudaSetDevice(int device)
 cudaError_t cudaGetLastError()
 {
 	STUB;
-	return cudaErrorNotImplemented;
+	return cudaSuccess;
 }
 
 const char* cudaGetErrorString(cudaError_t err)
@@ -93,7 +93,14 @@ const char* cudaGetErrorString(cudaError_t err)
 	return "Unknown Error";
 }
 
+/// @todo is this the right way to implement it?
 cudaError_t cudaDeviceSynchronize()
+{
+	ENSURE_INIT;
+	return g_context->getCurrentDevice().deviceSynchronize();
+}
+
+cudaError_t cudaThreadSynchronize()
 {
 	ENSURE_INIT;
 	return g_context->getCurrentDevice().deviceSynchronize();
