@@ -54,8 +54,8 @@ typedef std::vector<std::pair<size_t, void*>> ArgumentList;
  * @param h The "height" of one thread block
  * @param args A list of arguments
  */
-bool callKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const ArgumentList& args);
-bool callKernel(const char* name, const dim3& gridsize, const dim3& blocksize); // No args
+cudaError_t callKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const ArgumentList& args);
+cudaError_t callKernel(const char* name, const dim3& gridsize, const dim3& blocksize); // No args
 }
 
 #endif

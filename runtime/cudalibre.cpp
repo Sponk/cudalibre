@@ -31,6 +31,8 @@ using namespace cu;
 static shared_ptr<cu::CudaLibreContext> g_context = nullptr;
 
 #define ENSURE_INIT { if(g_context == nullptr) { g_context = make_shared<cu::CudaLibreContext>(); g_context->addSources(initialSources); }}
+#define RETURN_ERROR(x) s_lastError = x; return x;
+static cudaError_t s_lastError = cudaSuccess;
 
 namespace cu
 {
@@ -47,27 +49,24 @@ void resetCudaLibre()
 	g_context = nullptr;
 }
 
-bool callKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const cu::ArgumentList& args)
+cudaError_t callKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const cu::ArgumentList& args)
 {
 	ENSURE_INIT;
-	return cudaSuccess == g_context->getCurrentDevice().callKernel(name, gridsize, blocksize, args);
+	RETURN_ERROR(g_context->getCurrentDevice().callKernel(name, gridsize, blocksize, args));
 }
 
-bool callKernel(const char* name, const dim3& gridsize, const dim3& blocksize)
+cudaError_t callKernel(const char* name, const dim3& gridsize, const dim3& blocksize)
 {
 	ENSURE_INIT;
-	return cudaSuccess == g_context->getCurrentDevice().callKernel(name, gridsize, blocksize);
+	RETURN_ERROR(g_context->getCurrentDevice().callKernel(name, gridsize, blocksize));
 }
 }
-
-#define RETURN_ERROR(x) s_lastError = x; return x;
-static cudaError_t s_lastError = cudaSuccess;
 
 cudaError_t cudaGetDeviceCount(int* count)
 {
 	ENSURE_INIT;
 	*count = g_context->getNumDevices();
-	return cudaSuccess;
+	RETURN_ERROR(cudaSuccess);
 }
 
 // http://developer.amd.com/tools-and-sdks/opencl-zone/opencl-resources/programming-in-opencl/porting-cuda-applications-to-opencl/
@@ -75,13 +74,13 @@ cudaError_t cudaGetDeviceCount(int* count)
 cudaError_t cudaGetDeviceProperties(struct cudaDeviceProp* prop, int device)
 {
 	ENSURE_INIT;
-	return g_context->getDeviceProperties(prop, device);
+	RETURN_ERROR(g_context->getDeviceProperties(prop, device));
 }
 
 cudaError_t cudaSetDevice(int device)
 {
 	ENSURE_INIT;
-	return g_context->setCurrentDevice(device);
+	RETURN_ERROR(g_context->setCurrentDevice(device));
 }
 
 cudaError_t cudaGetLastError()
@@ -91,7 +90,14 @@ cudaError_t cudaGetLastError()
 
 const char* cudaGetErrorString(cudaError_t err)
 {
-	STUB;
+	switch(err)
+	{
+		case cudaSuccess: return "No Error";
+		case cudaErrorMemoryAllocation: return "Memory allocation error";
+		case cudaErrorInitializationError: return "Initialization error";
+		case cudaErrorInvalidDevice: return "Invalid Device error";
+		case cudaErrorNotImplemented: return "Not yet implemented"; // Attention: This is not standard CUDA!
+	}
 	return "Unknown Error";
 }
 
@@ -141,29 +147,29 @@ cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind 
 cudaError_t cudaEventCreate(cudaEvent_t* event)
 {
 	STUB;
-	return cudaErrorNotImplemented;
+	RETURN_ERROR(cudaErrorNotImplemented);
 }
 
 cudaError_t cudaEventRecord(cudaEvent_t event, cudaStream_t stream)
 {
 	STUB;
-	return cudaErrorNotImplemented;
+	RETURN_ERROR(cudaErrorNotImplemented);
 }
 
 cudaError_t cudaEventSynchronize(cudaEvent_t event)
 {
 	STUB;
-	return cudaErrorNotImplemented;
+	RETURN_ERROR(cudaErrorNotImplemented);
 }
 
 cudaError_t cudaEventElapsedTime(float* ms, cudaEvent_t start, cudaEvent_t end)
 {
 	STUB;
-	return cudaErrorNotImplemented;
+	RETURN_ERROR(cudaErrorNotImplemented);
 }
 
 cudaError_t cudaEventDestroy(cudaEvent_t event)
 {
 	STUB;
-	return cudaErrorNotImplemented;
+	RETURN_ERROR(cudaErrorNotImplemented);
 }
