@@ -3,43 +3,46 @@
 #include <iostream>
 
 using namespace std;
+using namespace cu;
 
 TEST(KernelTest, PrintfKernel)
 {
-	ASSERT_TRUE(lcSetSources("//#pragma OPENCL EXTENSION cl_intel_printf : enable \n__kernel void test() { "
+	initCudaLibre("//#pragma OPENCL EXTENSION cl_amd_printf : enable \n__kernel void test() { "
 	 "printf(\""
 					 "[ RUN      ] KernelTest.KernelPrintf%d\\n"
 	                 "[       OK ] KernelTest.KernelPrintf%d (0 ms)\\n\",  get_local_id(0), get_local_id(0));"
 
-							 "}\n"));
+							 "}\n");
 
 	std::cout << std::endl;
 	EXPECT_TRUE(lcCallKernel("test", 4, 4));
-	lcWaitForKernel();
+	cudaDeviceSynchronize();
+	resetCudaLibre();
 }
 
 TEST(KernelTest, PrintfKernelArg)
 {
-	ASSERT_TRUE(lcSetSources("//#pragma OPENCL EXTENSION cl_intel_printf : enable \n__kernel void test(int k, float l, float d) { "
+	initCudaLibre("//#pragma OPENCL EXTENSION cl_intel_printf : enable \n__kernel void test(int k, float l, float d) { "
 					 "printf(\""
 					 "[ RUN      ] KernelTest.KernelPrintfArg%d\\n"
 					 "[       OK ] KernelTest.KernelPrintfArg%d (0 ms)\\n\",  k, k);"
 		             "printf(\"\\nArguments: float %f, float %f\\n\", l, d);"
-							 "}\n"));
+							 "}\n");
 
 	std::cout << std::endl;
 
-	EXPECT_TRUE(lcCallKernel("test", 4, 4, lcArgumentList({LC_KERNEL_ARG(12), LC_KERNEL_ARG(42.0f), LC_KERNEL_ARG(3.1415f)})));
-	lcWaitForKernel();
+	EXPECT_TRUE(lcCallKernel("test", 4, 4, ArgumentList({CU_KERNEL_ARG(12), CU_KERNEL_ARG(42.0f), CU_KERNEL_ARG(3.1415f)})));
+	cudaDeviceSynchronize();
+	resetCudaLibre();
 }
 
 TEST(KernelTest, UpDownTest)
 {
-	ASSERT_TRUE(lcSetSources("//#pragma OPENCL EXTENSION cl_intel_printf : enable \n__kernel void test(__global float* src, int i) { "
+	initCudaLibre("//#pragma OPENCL EXTENSION cl_intel_printf : enable \n__kernel void test(__global float* src, int i) { "
 								 "printf(\""
 								 "[ RUN      ] KernelTest.KernelPrintfArg%f\\n"
 								 "[       OK ] KernelTest.KernelPrintfArg%f (0 ms)\\n\",  src[get_local_id(0)], src[get_local_id(0)]);"
-								 "}\n"));
+								 "}\n");
 
 	std::cout << std::endl;
 
@@ -53,8 +56,9 @@ TEST(KernelTest, UpDownTest)
 	ASSERT_EQ(cudaSuccess, cudaMallocPitch((void**) &devArray, &pitch, sizeof(float), testArraySize));
 	ASSERT_EQ(cudaSuccess, cudaMemcpy2D(devArray, pitch, array, sizeof(float), sizeof(float), testArraySize, cudaMemcpyHostToDevice));
 
-	EXPECT_TRUE(lcCallKernel("test", 1, testArraySize, lcArgumentList({LC_KERNEL_ARG(devArray), LC_KERNEL_ARG(1)})));
-	lcWaitForKernel();
+	EXPECT_TRUE(lcCallKernel("test", 1, testArraySize, ArgumentList({CU_KERNEL_ARG(devArray), CU_KERNEL_ARG(1)})));
+	cudaDeviceSynchronize();
 
 	delete[] array;
+	resetCudaLibre();
 }

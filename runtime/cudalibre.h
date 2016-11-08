@@ -7,8 +7,18 @@
 #include <memory>
 #include <cstring>
 
-#define LIBRECUDA_MAJOR 2
-#define LIBRECUDA_MINOR 0
+#define CL_HPP_TARGET_OPENCL_VERSION 200
+
+#ifdef __APPLE__
+#include <OpenCL/opencl.hpp>
+#else
+
+#if !defined(USE_CL1) && !defined(WIN32) && !defined(__CYGWIN__)
+#include <CL/cl2.hpp>
+#else
+#include <CL/cl.hpp>
+#endif // USE_CL1
+#endif
 
 // TODO: https://www.cs.cmu.edu/afs/cs/academic/class/15668-s11/www/cuda-doc/html
 //		/group__CUDART__TYPES_g3f51e3575c2178246db0a94a430e0038.html#g3f51e3575c2178246db0a94a430e0038
@@ -18,7 +28,7 @@ typedef enum cudaError
 	cudaErrorMemoryAllocation,
 	cudaErrorInitializationError,
 	cudaErrorInvalidDevice,
-	libreCudaErrorNotImplemented
+	cudaErrorNotImplemented // Attention: This is not standard CUDA!
 }cudaError_t;
 
 enum cudaComputeMode
@@ -105,29 +115,35 @@ cudaError_t cudaEventSynchronize(cudaEvent_t event);
 cudaError_t cudaEventElapsedTime(float* ms, cudaEvent_t start, cudaEvent_t end);
 cudaError_t cudaEventDestroy(cudaEvent_t event);
 cudaError_t cudaSetDevice(int device);
+cudaError_t cudaDeviceSynchronize();
 
 /// Non-CUDA functions
+// We don't need to actually copy the arguments since OpenCL does not keep the pointer
+// and copies the data for itself.
+#define CU_KERNEL_ARG(x) {sizeof(x), cu::addressOf<decltype(x)>(x)}
 
-typedef std::vector<std::pair<size_t, void*>> lcArgumentList;
+namespace cu
+{
 
-bool lcSetSources(const char* sources);
+static const int CUDALIBRE_MAJOR = 2;
+static const int CUDALIBRE_MINOR = 0;
+
+void initCudaLibre(const char* sources);
+void resetCudaLibre();
+
+template<typename T> void* addressOf(const T& src) { return (void*) &src; }
+typedef std::vector<std::pair<size_t, void*>> ArgumentList;
 
 /**
- * @brief Calls a kernel in the currently loaded program.
+ * @brief Calls a kernel in the currently loaded program on the current device.
  *
  * @param name The name of the function to call
  * @param w The "width" of one thread block
  * @param h The "height" of one thread block
  * @param args A list of arguments
  */
-bool lcCallKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const lcArgumentList& args);
+bool lcCallKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const ArgumentList& args);
 bool lcCallKernel(const char* name, const dim3& gridsize, const dim3& blocksize); // No args
-
-void lcWaitForKernel();
-
-// We don't need to actually copy the arguments since OpenCL does not keep the pointer
-// and copies the data for itself.
-#define LC_KERNEL_ARG(x) {sizeof(x), lcAddressOf<decltype(x)>(x)}
-template<typename T> void* lcAddressOf(const T& src) { /*T* t = (T*) malloc(sizeof(T)); memcpy(t, &src, sizeof(T)); return t;*/ return (void*) &src; }
+}
 
 #endif

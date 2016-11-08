@@ -4,7 +4,21 @@
 
 using namespace std;
 
-TEST(EnumerationTest, DeviceCount)
+class EnumerationTest: public ::testing::Test
+{
+protected:
+	virtual void TearDown()
+	{
+		cu::resetCudaLibre();
+	}
+
+	virtual void SetUp()
+	{
+		cu::initCudaLibre("");
+	}
+};
+
+TEST_F(EnumerationTest, DeviceCount)
 {
 	// Checks only if the value was changed
 	int num = 0xFFFFFF;
@@ -12,7 +26,7 @@ TEST(EnumerationTest, DeviceCount)
 	EXPECT_NE(0xFFFFFF, num); // Can't check for a specific number.
 }
 
-TEST(EnumerationTest, DeviceCheck) // This test needs at least one existing LibreCUDA (OpenCL) device!
+TEST_F(EnumerationTest, DeviceCheck) // This test needs at least one existing LibreCUDA (OpenCL) device!
 {
 	// Checks only if the value was changed
 	int num = 0;
