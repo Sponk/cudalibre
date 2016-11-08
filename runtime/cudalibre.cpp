@@ -68,7 +68,7 @@ cudaError_t cudaGetDeviceCount(int* count)
 }
 
 // http://developer.amd.com/tools-and-sdks/opencl-zone/opencl-resources/programming-in-opencl/porting-cuda-applications-to-opencl/
-/// TODO: Not all fields are filled in yet!
+/// @todo Not all fields are filled in yet!
 cudaError_t cudaGetDeviceProperties(struct cudaDeviceProp* prop, int device)
 {
 	ENSURE_INIT;

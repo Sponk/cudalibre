@@ -79,9 +79,9 @@ inline static const char* getErrorString(cl_int error)
 	}
 }
 
-// TODO: Implement error conversion!
 namespace cu
 {
+/// @todo Implement error conversion!
 cudaError_t clerr2cuderr(int err)
 {
 	switch (err)
@@ -168,12 +168,12 @@ cudaError_t cu::CudaLibreContext::getDeviceProperties(struct cudaDeviceProp* pro
 	prop->clockRate = cldev.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>() * 1000; // OpenCL is in MHz, CUDA is in KHz
 	prop->totalConstMem = cldev.getInfo<CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE>();
 	prop->multiProcessorCount = cldev.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
-	prop->computeMode = cudaComputeModeDefault; /// TODO: Always default access?
+	prop->computeMode = cudaComputeModeDefault; /// @todo Always default access?
 
 	prop->major = cu::CUDALIBRE_MAJOR;
 	prop->minor = cu::CUDALIBRE_MINOR;
 
-	prop->concurrentKernels = 0; /// TODO: Is is possible to run kernels concurrently with OpenCL?
+	prop->concurrentKernels = 0; /// @todo Is is possible to run kernels concurrently with OpenCL?
 	prop->ECCEnabled = 0;
 	prop->canMapHostMemory = 0;
 	return cudaSuccess;
