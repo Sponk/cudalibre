@@ -89,6 +89,8 @@ const char* cudaGetErrorString(cudaError_t err);
 cudaError_t cudaMallocPitch(void** devPtr, size_t* pitch, size_t width, size_t height);
 cudaError_t cudaFree(void* devPtr);
 cudaError_t cudaMemcpy2D(void* dst, size_t dpitch, const void* src, size_t spitch, size_t width, size_t height, cudaMemcpyKind kind);
+cudaError_t cudaMalloc(void** devPtr, size_t size);
+cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind);
 cudaError_t cudaEventCreate(cudaEvent_t* event);
 cudaError_t cudaEventRecord(cudaEvent_t event, cudaStream_t stream = 0);
 cudaError_t cudaEventSynchronize(cudaEvent_t event);

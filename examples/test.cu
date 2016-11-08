@@ -8,6 +8,18 @@ __global__ void testkernel(__device__ float* a, __device__ float* b, __device__ 
 	c[id] = a[id] + b[id];
 }
 
+__global__ void mul(__device__ float* a, __device__ float* b, __device__ float* c)
+{
+	unsigned int id = threadIdx.x;
+	c[id] = a[id] * b[id];
+}
+
+__global__ void div(__device__ float* a, __device__ float* b, __device__ float* c)
+{
+	unsigned int id = threadIdx.x;
+	c[id] = a[id] / b[id];
+}
+
 void print_cuda_devices()
 {
 	int num = 0;
@@ -50,7 +62,7 @@ int main(int argc, char* argv[])
    	c = new float[TESTSIZE];
 
    	for(int i = 0; i < TESTSIZE; i++) a[i] = i;
-	for(int i = 0; i < TESTSIZE; i++) b[i] = i;
+	for(int i = 0; i < TESTSIZE; i++) b[i] = TESTSIZE - i;
 
    	cudaMemcpy2D(da, pitch, a, sizeof(float), sizeof(float), TESTSIZE, cudaMemcpyHostToDevice);
 	cudaMemcpy2D(db, pitch, b, sizeof(float), sizeof(float), TESTSIZE, cudaMemcpyHostToDevice);
@@ -61,4 +73,33 @@ int main(int argc, char* argv[])
 
 	for(int i = 0; i < TESTSIZE; i++)
 		printf("%f + %f = %f\n", a[i], b[i], c[i]);
+
+	cudaFree(da);
+	cudaFree(db);
+	cudaFree(dc);
+
+	cudaMalloc((void**) &da, sizeof(float) * TESTSIZE);
+	cudaMalloc((void**) &db, sizeof(float) * TESTSIZE);
+	cudaMalloc((void**) &dc, sizeof(float) * TESTSIZE);
+
+	cudaMemcpy(da, a, sizeof(float) * TESTSIZE, cudaMemcpyHostToDevice);
+	cudaMemcpy(db, b, sizeof(float) * TESTSIZE, cudaMemcpyHostToDevice);
+
+	mul<<<1, TESTSIZE>>>(da, db, dc);
+
+	cudaMemcpy(dc, c, sizeof(float) * TESTSIZE, cudaMemcpyDeviceToHost);
+
+	for(int i = 0; i < TESTSIZE; i++)
+    	printf("%f * %f = %f\n", a[i], b[i], c[i]);
+
+    div<<<1, TESTSIZE>>>(da, db, dc);
+
+    cudaMemcpy(dc, c, sizeof(float) * TESTSIZE, cudaMemcpyDeviceToHost);
+
+    for(int i = 0; i < TESTSIZE; i++)
+      	printf("%f / %f = %f\n", a[i], b[i], c[i]);
+
+	cudaFree(da);
+   	cudaFree(db);
+   	cudaFree(dc);
 }

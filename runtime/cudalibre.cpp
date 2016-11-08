@@ -117,6 +117,18 @@ cudaError_t cudaMemcpy2D(void* dst, size_t dpitch, const void* src, size_t spitc
 	return g_context->getCurrentDevice().memcpy2D(dst, dpitch, src, spitch, width, height, kind);
 }
 
+cudaError_t cudaMalloc(void** devPtr, size_t size)
+{
+	ENSURE_INIT;
+	return g_context->getCurrentDevice().malloc(devPtr, size);
+}
+
+cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind)
+{
+	ENSURE_INIT;
+	return g_context->getCurrentDevice().memcpy(dst, src, count, kind);
+}
+
 cudaError_t cudaEventCreate(cudaEvent_t* event)
 {
 	STUB;

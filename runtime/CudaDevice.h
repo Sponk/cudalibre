@@ -55,6 +55,9 @@ public:
 	 */
 	cudaError_t memcpy2D(void* dst, size_t dpitch, const void* src, size_t spitch, size_t width, size_t height, cudaMemcpyKind kind);
 
+	cudaError_t malloc(void** devPtr, size_t size);
+	cudaError_t memcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind);
+
 	/**
 	 * @brief Indicates if the kernel has been built already.
 	 * @return True if it has, false if it has not.

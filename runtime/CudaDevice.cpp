@@ -148,6 +148,19 @@ cudaError_t cu::CudaDevice::mallocPitch(void** devPtr, size_t* pitch, size_t wid
 	return clerr2cuderr(err);
 }
 
+cudaError_t cu::CudaDevice::malloc(void** devPtr, size_t size)
+{
+	int err = 0;
+
+	cl::Buffer& buf = bufferHeap[++bufferHeapIndex];
+	buf = cl::Buffer(context, CL_MEM_READ_WRITE, size, NULL, &err);
+
+	checkErr(err, "Buffer::Buffer()");
+	*devPtr = (void*) bufferHeapIndex; // Hand out the handle to the buffer
+
+	return clerr2cuderr(err);
+}
+
 cudaError_t cu::CudaDevice::memcpy2D(void* dst, size_t dpitch, const void* src, size_t spitch, size_t width, size_t height, cudaMemcpyKind kind)
 {
 	int err = 0;
@@ -170,6 +183,31 @@ cudaError_t cu::CudaDevice::memcpy2D(void* dst, size_t dpitch, const void* src, 
 	}
 
 	checkErr(err, "memcpy2D");
+	return clerr2cuderr(err);
+}
+
+cudaError_t cu::CudaDevice::memcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind)
+{
+	int err = 0;
+
+	auto bufiter = bufferHeap.find(reinterpret_cast<size_t>(dst));
+	if(bufiter == bufferHeap.end())
+		return cudaErrorMemoryAllocation;
+
+	switch(kind)
+	{
+		case cudaMemcpyHostToDevice: // FIXME: Should this be blocking or asynchronous?
+			err = queue.enqueueWriteBuffer(bufiter->second, CL_TRUE, 0, count, src, NULL, NULL);
+			break;
+
+		case cudaMemcpyDeviceToHost:
+			err = queue.enqueueReadBuffer(bufiter->second, CL_TRUE, 0, count, (void*) src, NULL, NULL);
+			break;
+
+		default: return cudaErrorNotImplemented;
+	}
+
+	checkErr(err, "memcpy");
 	return clerr2cuderr(err);
 }
 
