@@ -60,6 +60,9 @@ bool callKernel(const char* name, const dim3& gridsize, const dim3& blocksize)
 }
 }
 
+#define RETURN_ERROR(x) s_lastError = x; return x;
+static cudaError_t s_lastError = cudaSuccess;
+
 cudaError_t cudaGetDeviceCount(int* count)
 {
 	ENSURE_INIT;
@@ -83,8 +86,7 @@ cudaError_t cudaSetDevice(int device)
 
 cudaError_t cudaGetLastError()
 {
-	STUB;
-	return cudaSuccess;
+	return s_lastError;
 }
 
 const char* cudaGetErrorString(cudaError_t err)
@@ -97,43 +99,43 @@ const char* cudaGetErrorString(cudaError_t err)
 cudaError_t cudaDeviceSynchronize()
 {
 	ENSURE_INIT;
-	return g_context->getCurrentDevice().deviceSynchronize();
+	RETURN_ERROR(g_context->getCurrentDevice().deviceSynchronize());
 }
 
 cudaError_t cudaThreadSynchronize()
 {
 	ENSURE_INIT;
-	return g_context->getCurrentDevice().deviceSynchronize();
+	RETURN_ERROR(g_context->getCurrentDevice().deviceSynchronize());
 }
 
 cudaError_t cudaMallocPitch(void** devPtr, size_t* pitch, size_t width, size_t height)
 {
 	ENSURE_INIT;
-	return g_context->getCurrentDevice().mallocPitch(devPtr, pitch, width, height);
+	RETURN_ERROR(g_context->getCurrentDevice().mallocPitch(devPtr, pitch, width, height));
 }
 
 cudaError_t cudaFree(void* devPtr)
 {
 	ENSURE_INIT;
-	return g_context->getCurrentDevice().free(devPtr);
+	RETURN_ERROR(g_context->getCurrentDevice().free(devPtr));
 }
 
 cudaError_t cudaMemcpy2D(void* dst, size_t dpitch, const void* src, size_t spitch, size_t width, size_t height, cudaMemcpyKind kind)
 {
 	ENSURE_INIT;
-	return g_context->getCurrentDevice().memcpy2D(dst, dpitch, src, spitch, width, height, kind);
+	RETURN_ERROR(g_context->getCurrentDevice().memcpy2D(dst, dpitch, src, spitch, width, height, kind));
 }
 
 cudaError_t cudaMalloc(void** devPtr, size_t size)
 {
 	ENSURE_INIT;
-	return g_context->getCurrentDevice().malloc(devPtr, size);
+	RETURN_ERROR(g_context->getCurrentDevice().malloc(devPtr, size));
 }
 
 cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind)
 {
 	ENSURE_INIT;
-	return g_context->getCurrentDevice().memcpy(dst, src, count, kind);
+	RETURN_ERROR(g_context->getCurrentDevice().memcpy(dst, src, count, kind));
 }
 
 cudaError_t cudaEventCreate(cudaEvent_t* event)

@@ -82,8 +82,6 @@ static inline void calculateWorksize(const dim3& gridsize, const dim3& blocksize
 
 cudaError_t cu::CudaDevice::callKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const cu::ArgumentList& args)
 {
-	DEBUG("gridsize %d %d %d blocksize %d %d %d", gridsize.x, gridsize.y, gridsize.z, blocksize.x, blocksize.y, blocksize.z);
-
 	int err = 0;
 
 	// Make sure the kernelcode has been built
