@@ -146,30 +146,32 @@ cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind 
 
 cudaError_t cudaEventCreate(cudaEvent_t* event)
 {
-	STUB;
-	RETURN_ERROR(cudaErrorNotImplemented);
+	event->time = new std::chrono::high_resolution_clock::time_point;
+	RETURN_ERROR(cudaSuccess);
 }
 
 cudaError_t cudaEventRecord(cudaEvent_t event, cudaStream_t stream)
 {
-	STUB;
-	RETURN_ERROR(cudaErrorNotImplemented);
+	*event.time = chrono::high_resolution_clock::now();
+	RETURN_ERROR(cudaSuccess);
 }
 
 cudaError_t cudaEventSynchronize(cudaEvent_t event)
 {
-	STUB;
-	RETURN_ERROR(cudaErrorNotImplemented);
+	cudaThreadSynchronize();
+	*event.time = chrono::high_resolution_clock::now();
+	RETURN_ERROR(cudaSuccess);
 }
 
 cudaError_t cudaEventElapsedTime(float* ms, cudaEvent_t start, cudaEvent_t end)
 {
-	STUB;
-	RETURN_ERROR(cudaErrorNotImplemented);
+	auto diff = chrono::duration_cast<chrono::nanoseconds>(*end.time - *start.time);
+	*ms = static_cast<float>(diff.count()) / 1000.0f / 1000.0f;
+	RETURN_ERROR(cudaSuccess);
 }
 
 cudaError_t cudaEventDestroy(cudaEvent_t event)
 {
-	STUB;
-	RETURN_ERROR(cudaErrorNotImplemented);
+	delete event.time;
+	RETURN_ERROR(cudaSuccess);
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+
 // TODO: https://www.cs.cmu.edu/afs/cs/academic/class/15668-s11/www/cuda-doc/html
 //		/group__CUDART__TYPES_g3f51e3575c2178246db0a94a430e0038.html#g3f51e3575c2178246db0a94a430e0038
 typedef enum cudaError
@@ -47,7 +49,7 @@ struct dim3
 
 typedef struct
 {
-
+	std::chrono::high_resolution_clock::time_point* time;
 }cudaEvent_t;
 
 typedef int cudaStream_t;
