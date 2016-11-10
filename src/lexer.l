@@ -34,7 +34,7 @@ struct[ \t]+(.*|\n|\{)*\}; { yylval.sval = new string(yytext); return STRUCT; }
 typedef[ \t]+((struct[ \t]+)?(.*|\n|\{)*\}(.+)?;) { yylval.sval = new string(yytext); return TYPEDEF; }
 typedef[ \t].+ { yylval.sval = new string(yytext); return TYPEDEF; }
 
-[a-zA-Z0-9_]+<<<[a-zA-Z0-9_]+,[\ ]*[a-zA-Z0-9_]+>>>\(.*\); { yylval.sval = new std::string(yytext); return KERNEL_CALL; }
+[a-zA-Z0-9_]+<<<[a-zA-Z0-9_\(\)\+\-\*\/]+,[\ ]*[a-zA-Z0-9_]+>>>\(.*\); { yylval.sval = new std::string(yytext); return KERNEL_CALL; }
 
 #include[ \t].+\"\.+\" { yylval.sval = new std::string(yytext); return INCLUDE; } /* This will not include system headers. */
 #define[ \t].+ { yylval.sval = new std::string(yytext); return INCLUDE; }

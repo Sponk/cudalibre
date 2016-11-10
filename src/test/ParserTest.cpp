@@ -67,12 +67,14 @@ TEST(Parser, KernelCall)
 {
 	cppstream.str("");
 	clstream.str("");
-	EXPECT_FALSE(parse("kernel<<<32, 12>>>(a, b, c);\n"));
+	EXPECT_EQ(0, parse("kernel<<<32, 12>>>(a, b, c);\n"));
 	EXPECT_FALSE(cppstream.str().empty());
 	EXPECT_TRUE(clstream.str().empty());
 
-	EXPECT_STREQ("callKernel(\"kernel\", 32, 12, ArgumentList({CU_KERNEL_ARG(a), CU_KERNEL_ARG( b), CU_KERNEL_ARG( c)}));\n\n"
+	EXPECT_STREQ("cu::callKernel(\"kernel\", 32, 12, cu::ArgumentList({CU_KERNEL_ARG(a), CU_KERNEL_ARG( b), CU_KERNEL_ARG( c)}));\n\n"
 	, cppstream.str().c_str());
+
+	EXPECT_EQ(0, parse("kernel\t<<<dim3(32), sizeof(12)*5>>>\t(a, b, c);\n"));
 }
 
 TEST(Parser, Include)
