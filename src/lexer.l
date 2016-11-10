@@ -27,6 +27,7 @@ using namespace std;
 
 __global__[ \t].+ { yylval.sval = new string(yytext); return GLOBAL; }
 __device__[ \t].+ { yylval.sval = new string(yytext); return DEVICE; }
+	/* __shared__[ \t].+ { yylval.sval = new string(yytext); return SHARED; }*/
 
 struct[ \t]+(.*|\n|\{)*\}; { yylval.sval = new string(yytext); return STRUCT; }
 

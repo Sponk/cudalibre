@@ -9,18 +9,7 @@ extern stringstream cppstream, clstream;
 
 int parse(FILE *fp); // From parser.y
 
-void replacestr(std::string& str, const std::string& search, const std::string& replace)
-{
-	for(size_t idx = 0;; idx += replace.length())
-	{
-		idx = str.find(search, idx);
-		if(idx == string::npos)
-			break;
-
-		str.erase(idx, search.length());
-		str.insert(idx, replace);
-	}
-}
+void replacestr(std::string& str, const std::string& search, const std::string& replace);
 
 std::string stringify(const std::string& str)
 {

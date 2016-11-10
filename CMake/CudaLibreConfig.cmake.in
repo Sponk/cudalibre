@@ -17,6 +17,8 @@ endif()
 set(CudaLibre_LIBRARIES clruntime)
 set(CLCC_EXECUTABLE clcc)
 
+find_package(OpenCL REQUIRED)
+
 macro(cuda_add_executable name)
     set(_SOURCELIST "")
     set(_CUDA_DEPS "")
@@ -40,7 +42,11 @@ macro(cuda_add_executable name)
     endforeach()
 
     add_executable(${name} ${_SOURCELIST})
-    add_dependencies(${name} ${_CUDA_DEPS})
+
+    if(_CUDA_DEPS)
+        add_dependencies(${name} ${_CUDA_DEPS})
+    endif()
+
     target_link_libraries(${name} ${CudaLibre_LIBRARIES} ${OpenCL_LIBRARIES})
     target_include_directories(${name} PUBLIC ${CudaLibre_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 endmacro()

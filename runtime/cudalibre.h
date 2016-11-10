@@ -22,7 +22,7 @@
 
 #include "cuda_runtime.h"
 
-// #define __DEBUG__
+#define __DEBUG__
 #ifdef __DEBUG__
 #define DEBUG(format, ...) fprintf(stdout, "Debug in %s at %d: " format "\n", __FILE__, __LINE__, ## __VA_ARGS__ )
 #else

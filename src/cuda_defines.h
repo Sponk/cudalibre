@@ -1,6 +1,7 @@
 #pragma once
 
 const char* cuda_header =
+	"#define __CUDACC__\n"
 	"#define __constant__ __constant\n"
 	"#define __shared__ __local\n"
 	"#define __device__ __global\n"
@@ -8,7 +9,7 @@ const char* cuda_header =
 	"#define blockDim (local_size2dim3())\n"
 	"#define blockIdx (group_id2dim3())\n"
 	"#define threadIdx (local_id2dim3())\n"
-	"#define __syncthreads barrier\n"
+	"#define __syncthreads() barrier(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE)\n"
 	"#define __threadfence_block() mem_fence(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE)\n"
 	"#define __global__\n"
 	"typedef struct { int x; int y; int z; } dim3;\n"

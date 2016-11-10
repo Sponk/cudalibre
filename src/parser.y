@@ -31,7 +31,18 @@ void handle_command(char* cmd, std::vector<char*>* args);
 int currline = 1;
 stringstream cppstream, clstream;
 
-void replacestr(std::string& str, const std::string& search, const std::string& replace);
+void replacestr(std::string& str, const std::string& search, const std::string& replace)
+{
+	for(size_t idx = 0;; idx += replace.length())
+	{
+		idx = str.find(search, idx);
+		if(idx == string::npos)
+			break;
+
+		str.erase(idx, search.length());
+		str.insert(idx, replace);
+	}
+}
 
 void splitstr(const std::string& str, char delim, std::vector<std::string>& elems)
 {
@@ -95,6 +106,7 @@ string& generateKernelCall(string& str)
 %token CURLY_CLOSE
 %token <sval> GLOBAL
 %token <sval> DEVICE
+%token <sval> SHARED
 %token SPACE
 %token <sval> KERNEL_CALL
 %token <sval> TYPEDEF
@@ -107,6 +119,7 @@ string& generateKernelCall(string& str)
 %type <sval> linelist
 %type <sval> global_function
 %type <sval> device_function
+%type <sval> shared_variable
 %type <sval> code_block
 %type <sval> spacelist
 %type <sval> structure
@@ -121,6 +134,7 @@ parser:
 file:
 	global_function { /*cppstream << *$1;*/ clstream << "__kernel " << *$1 << endl; delete $1; }
 	| device_function { clstream << *$1 << endl; delete $1; }
+	| shared_variable { clstream << *$1 << endl; delete $1; }
 	| STRUCT { clstream << *$1 << endl; cppstream << *$1 << endl; delete $1; }
 	| TYPEDEF { clstream << *$1 << endl; cppstream << *$1 << endl; delete $1; }
 	| INCLUDE { clstream << *$1 << endl; cppstream << *$1 << endl; delete $1; }
@@ -164,12 +178,31 @@ code_block: { $$ = new string(); }
 //	; 
 
 global_function:
-	GLOBAL line code_block { *$1 += *$2 + *$3; delete $3; delete $2; $$ = $1; }
+	GLOBAL line code_block 
+	{
+		*$1 += *$2 + *$3; 
+		delete $3; 
+		delete $2; 
+		$$ = $1; 
+	}
 	;
 
 device_function:
-	DEVICE line code_block { *$1 += *$2 + *$3; delete $3; delete $2; $$ = $1; }
-	;
+	DEVICE line code_block 
+	{ 
+		// Remove __device__ keyword. It is not needed in OpenCL
+		int idx = $1->find("__device__");
+		if(idx != string::npos)
+			$1->erase(idx, 10);
+		
+		*$1 += *$2 + *$3;
+		delete $3;
+		delete $2;
+		$$ = $1; 
+	}
+
+shared_variable:
+	SHARED line { *$1 += *$2; delete $2; $$ = $1; }	;
 
 structure:
 	STRUCT line code_block { *$1 += *$2 + *$3; delete $3; delete $2; $$ = $1; }
