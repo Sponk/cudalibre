@@ -81,3 +81,13 @@ install(FILES
 
 install(EXPORT CudaLibreTargets DESTINATION
         "${INSTALL_CMAKE_DIR}" COMPONENT dev)
+
+
+## Uninstall target
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/CMake/uninstall.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/CMake/uninstall.cmake"
+  IMMEDIATE @ONLY)
+
+add_custom_target(uninstall
+  "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/CMake/uninstall.cmake")
