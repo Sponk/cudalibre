@@ -3,6 +3,10 @@
 #include <sstream>
 #include <fstream>
 #include <iostream>
+#include <getopt.h>
+#include <cstring>
+
+#define VERSION_STRING "0.1"
 
 using namespace std;
 extern stringstream cppstream, clstream;
@@ -22,26 +26,79 @@ std::string stringify(const std::string& str)
 	return "\"" + result + "\"";
 }
 
+void usage(const char* name)
+{
+	std::cout << name << " [-s input] [-o output]" << std::endl;
+	std::cout << "\t-s:\tInput source file" << std::endl;
+	std::cout << "\t-o:\tOutput C++ source file" << std::endl;
+	std::cout << "\t-v:\tPrint version" << std::endl;
+	std::cout << "\t-h:\tThis help" << std::endl;
+}
+
+struct Options
+{
+	std::string input;
+	std::string output;
+};
+
+void parseArg(int argc, char** argv, Options& options)
+{
+	int opt;
+	while((opt = getopt(argc, argv, "vhs:o:")) != -1)
+	{
+        switch (opt)
+		{
+        case 's':
+			options.input = optarg;
+            break;
+			
+        case 'o':
+			options.output = optarg;
+            break;
+
+		case 'h':
+			usage(argv[0]);
+            exit(EXIT_SUCCESS);
+			break;
+
+		case 'v':
+			std::cout << "clcc v" << VERSION_STRING << std::endl;
+            exit(EXIT_SUCCESS);
+			break;
+			
+        default:
+			usage(argv[0]);
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
 	// cout << "LibreCUDA compiler v0.1" << endl;
 
-	if(argc < 3)
+	/*if(argc < 3)
+	{
+		usage();
 		return 0;
+		}*/
 
-	FILE* f = fopen(argv[1], "r");
+	Options opt;
+	parseArg(argc, argv, opt);
+	
+	FILE* f = fopen(opt.input.c_str(), "r");
 	if(!f)
 	{
-		perror("Could not open input file!");
+		std::cerr << "Could not open \"" << opt.input << "\": " << strerror(errno) << std::endl;
 		return 1;
 	}
 
 	int result = parse(f);
-	ofstream cppout(argv[2]);
+	ofstream cppout(opt.output);
 
 	if(!cppout)
 	{
-		perror("Could not open output file!");
+		std::cerr << "Could not open \"" << opt.output << "\": " << strerror(errno) << std::endl;
 		return 1;
 	}
 
