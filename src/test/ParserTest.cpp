@@ -63,6 +63,24 @@ TEST(Parser, Typedef)
 	EXPECT_FALSE(clstream.str().empty());
 }
 
+TEST(Parser, LineComment)
+{
+	cppstream.str("");
+	clstream.str("");
+	EXPECT_EQ(0, parse("// typedef int test;\n"));
+	EXPECT_FALSE(cppstream.str().empty());
+	EXPECT_TRUE(clstream.str().empty());
+}
+
+TEST(Parser, MultilineComment)
+{
+	cppstream.str("");
+	clstream.str("");
+	EXPECT_EQ(0, parse("/*\n typedef int test;\n*\\n"));
+	EXPECT_FALSE(cppstream.str().empty());
+	EXPECT_TRUE(clstream.str().empty());
+}
+
 TEST(Parser, KernelCall)
 {
 	cppstream.str("");

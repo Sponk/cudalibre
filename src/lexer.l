@@ -25,6 +25,8 @@ using namespace std;
 
 %%
 
+\/\*(.*|\n)*|\n\*\/|"//".*\n { yylval.sval = new std::string(yytext); return COMMENT; }
+
 __global__[ \t].+ { yylval.sval = new string(yytext); return GLOBAL; }
 __device__[ \t].+ { yylval.sval = new string(yytext); return DEVICE; }
 	/* __shared__[ \t].+ { yylval.sval = new string(yytext); return SHARED; }*/
