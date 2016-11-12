@@ -17,6 +17,7 @@ endif()
 set(CudaLibre_LIBRARIES clruntime)
 set(CLCC_EXECUTABLE clcc)
 
+include(FindPackageHandleStandardArgs)
 find_package(OpenCL REQUIRED)
 
 macro(cuda_add_executable name)
