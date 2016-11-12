@@ -112,6 +112,7 @@ string& generateKernelCall(string& str)
 %token <sval> TYPEDEF
 %token <sval> STRUCT
 %token <sval> INCLUDE
+%token <sval> COMMENT
 
 %type <sval> word
 %type <sval> wordlist
@@ -141,7 +142,8 @@ file:
 	| KERNEL_CALL { cppstream << generateKernelCall(*$1) << endl; delete $1; }
 	| linelist { cppstream << *$1; delete $1; }
 	| CURLY_OPEN linelist CURLY_CLOSE { cppstream << "{" << *$2 << "}"; delete $2; }
-	;
+	| COMMENT { cppstream << *$1 << endl; delete $1; }
+;
 
 word: CHARACTER { $$ = new string; *$$ += $1; } 
 	| word CHARACTER  { *$1 += $2; $$ = $1; }
