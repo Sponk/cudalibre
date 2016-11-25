@@ -2,19 +2,19 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
-__global__ void testkernel(__device__ float* a, __device__ float* b, __device__ float* c)
+__global__ void testkernel(float* a, float* b, float* c)
 {
 	unsigned int id = threadIdx.x;
 	c[id] = a[id] + b[id];
 }
 
-__global__ void mul(__device__ float* a, __device__ float* b, __device__ float* c)
+__global__ void mul(float* a, float* b, float* c)
 {
 	unsigned int id = threadIdx.x;
 	c[id] = a[id] * b[id];
 }
 
-__global__ void div(__device__ float* a, __device__ float* b, __device__ float* c)
+__global__ void div(float* a, float* b, float* c)
 {
 	unsigned int id = threadIdx.x;
 	c[id] = a[id] / b[id];

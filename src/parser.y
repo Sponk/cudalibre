@@ -91,6 +91,41 @@ string& generateKernelCall(string& str)
 	return str;
 }
 
+string& generateKernelDef(string& str)
+{
+	stringstream ss;
+
+	int index = str.find("(") + 1;
+	int closingIndex = str.find(")", index);
+
+	ss << str.substr(0, index);
+
+	vector<string> args;
+	string arg = str.substr(index, closingIndex - index);
+	splitstr(arg, ',', args);
+
+	for(auto& s : args)
+	{
+		if(s.find("*") != -1)
+		{
+			ss << "__global ";
+		}
+
+		if(s != args.back())
+		{
+			ss << s << ", ";
+		}
+		else
+		{
+			ss << s << ")";
+		}
+	}
+
+	ss << str.substr(closingIndex + 1);
+	str = ss.str();
+	return str;
+}
+
 %}
 
 %union{
@@ -133,7 +168,7 @@ parser:
 		;
 
 file:
-	global_function { /*cppstream << *$1;*/ clstream << "__kernel " << *$1 << endl; delete $1; }
+	global_function { /*cppstream << *$1;*/ clstream << "__kernel " << generateKernelDef(*$1) << endl; delete $1; }
 	| device_function { clstream << *$1 << endl; delete $1; }
 	| shared_variable { clstream << *$1 << endl; delete $1; }
 	| STRUCT { clstream << *$1 << endl; cppstream << *$1 << endl; delete $1; }
