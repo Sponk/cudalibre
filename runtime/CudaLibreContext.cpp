@@ -163,6 +163,7 @@ cudaError_t cu::CudaLibreContext::getDeviceProperties(struct cudaDeviceProp* pro
 	const cl::Device& cldev = cudaDevices[device].getDevice();
 	strncpy(prop->name, cldev.getInfo<CL_DEVICE_NAME>().c_str(), sizeof(prop->name));
 
+	prop->l2CacheSize = cldev.getInfo<CL_DEVICE_GLOBAL_MEM_CACHE_SIZE>();
 	prop->totalGlobalMem = cldev.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>();
 	prop->sharedMemPerBlock = cldev.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>(); // CUDA shared memory <=> OpenCL local memory
 	prop->clockRate = cldev.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>() * 1000; // OpenCL is in MHz, CUDA is in KHz
