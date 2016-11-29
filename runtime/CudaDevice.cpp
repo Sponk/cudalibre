@@ -45,6 +45,7 @@ cudaError_t cu::CudaDevice::buildKernel(const char* sources)
 	if(checkErr(err, sources))
 	{
 		cerr << "Build log:" << endl << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << endl;
+		err = cudaErrorInitializationError;
 	}
 
 	return clerr2cuderr(err);

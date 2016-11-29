@@ -86,8 +86,8 @@ cudaError_t clerr2cuderr(int err)
 {
 	switch (err)
 	{
-		case 0:
-			return cudaSuccess;
+		case 0: return cudaSuccess;
+		case CL_INVALID_KERNEL_NAME: return cudaErrorInitializationError;
 	}
 
 	return cudaErrorNotImplemented;
@@ -125,6 +125,9 @@ cu::CudaLibreContext::CudaLibreContext()
 	// Find platforms
 	cl::Platform::get(&platforms);
 
+	// FIXME: Shoud I use assertions?
+	assert(platform >= 0 && platform < platforms.size());
+
 	std::string name;
 	platforms[platform].getInfo(CL_PLATFORM_NAME, &name);
 	/*cout << "Found " << platforms.size() << " OpenCL platforms. Using "
@@ -140,6 +143,8 @@ cu::CudaLibreContext::CudaLibreContext()
 
 	// Get devices
 	devices = clcontext.getInfo<CL_CONTEXT_DEVICES>();
+	assert(device >= 0 && device < devices.size());
+
 	/*cout << "Found " << devices.size() << " OpenCL devices. Using "
 		 << devices[device].getInfo<CL_DEVICE_NAME>()
 		 << " (version " << devices[device].getInfo<CL_DEVICE_VERSION>() << ") as default." << endl;*/

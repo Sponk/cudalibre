@@ -7,15 +7,17 @@
 #include <memory>
 #include <cstring>
 
-#define CL_HPP_TARGET_OPENCL_VERSION 200
-
 #ifdef __APPLE__
 #include <OpenCL/opencl.hpp>
 #else
 
+#define USE_CL1
+
 #if !defined(USE_CL1) && !defined(WIN32) && !defined(__CYGWIN__)
+#define CL_HPP_TARGET_OPENCL_VERSION 200
 #include <CL/cl2.hpp>
 #else
+#define CL_VERSION_1_2
 #include <CL/cl.hpp>
 #endif // USE_CL1
 #endif
