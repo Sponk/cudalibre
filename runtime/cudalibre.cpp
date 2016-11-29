@@ -46,6 +46,7 @@ void initCudaLibre(const char* sources)
 
 void resetCudaLibre()
 {
+	g_context->clear();
 	g_context = nullptr;
 }
 
@@ -118,6 +119,12 @@ cudaError_t cudaMallocPitch(void** devPtr, size_t* pitch, size_t width, size_t h
 {
 	ENSURE_INIT;
 	RETURN_ERROR(g_context->getCurrentDevice().mallocPitch(devPtr, pitch, width, height));
+}
+
+cudaError_t cudaMallocManaged(void** devPtr, size_t size, unsigned int flags)
+{
+	ENSURE_INIT;
+	RETURN_ERROR(g_context->getCurrentDevice().mallocManaged(devPtr, size));
 }
 
 cudaError_t cudaFree(void* devPtr)

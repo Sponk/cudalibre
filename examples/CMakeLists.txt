@@ -5,3 +5,6 @@ add_test(VectorPitchTest VectorPitchTest)
 
 cuda_add_executable(VectorTest VectorTest.cu)
 add_test(VectorTest VectorTest)
+
+cuda_add_executable(VectorManagedTest VectorManagedTest.cu)
+add_test(VectorManagedTest VectorManagedTest)

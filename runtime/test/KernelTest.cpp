@@ -65,3 +65,30 @@ TEST(KernelTest, UpDownTest)
 	delete[] array;
 	resetCudaLibre();
 }
+
+TEST(KernelTest, UpDownManagedTest)
+{
+	initCudaLibre("//#pragma OPENCL EXTENSION cl_intel_printf : enable \n__kernel void test(__global float* src, int i) { "
+					  "src[get_local_id(0)]++;\n"
+					  "printf(\""
+					  "[ RUN      ] KernelTest.KernelPrintfArg%f\\n"
+					  "[       OK ] KernelTest.KernelPrintfArg%f (0 ms)\\n\",  src[get_local_id(0)], src[get_local_id(0)]);"
+					  "}\n");
+
+	std::cout << std::endl;
+
+	size_t testArraySize = 64;
+	float* array;
+
+	ASSERT_EQ(cudaSuccess, cudaMallocManaged((void**) &array, testArraySize * sizeof(float)));
+
+	for(int i = 0; i < testArraySize; i++) array[i] = i;
+
+	EXPECT_EQ(cudaSuccess, callKernel("test", 1, testArraySize, ArgumentList({CU_KERNEL_ARG(array), CU_KERNEL_ARG(1)})));
+	cudaDeviceSynchronize();
+
+	for(int i = 0; i < testArraySize; i++) EXPECT_EQ(i+1, array[i]);
+
+	cudaFree(array);
+	resetCudaLibre();
+}

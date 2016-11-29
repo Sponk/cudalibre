@@ -4,6 +4,7 @@
 #include "cudalibre.h"
 #include <string>
 #include <unordered_map>
+#include <memory>
 
 namespace cu
 {
@@ -22,8 +23,19 @@ class CudaDevice
 	std::string kernelcode;
 	bool kernelCompiled = false;
 
-	size_t bufferHeapIndex = 0;
-	std::unordered_map<size_t, cl::Buffer> bufferHeap;
+	struct UnifiedBuffer
+	{
+		UnifiedBuffer() {}
+		UnifiedBuffer(void* host, cl::Buffer* buffer) :
+			host(host),
+			buffer(buffer) {}
+
+		void* host = nullptr;
+		cl::Buffer* buffer;
+	};
+
+	//size_t bufferHeapIndex = 0;
+	std::unordered_map<void*, UnifiedBuffer> bufferHeap;
 
 public:
 	CudaDevice(cl::Context& context, cl::Device& device);
@@ -44,6 +56,7 @@ public:
 	 * @see cudaMallocPitch
 	 */
 	cudaError_t mallocPitch(void** devPtr, size_t* pitch, size_t width, size_t height);
+	cudaError_t mallocManaged(void** devPtr, size_t size, unsigned int flags = cudaMemAttachGlobal);
 
 	/**
 	 * @see cudaFree
@@ -82,6 +95,12 @@ public:
 	cudaError_t callKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const cu::ArgumentList& args = cu::ArgumentList());
 
 	void setSources(const char* sources);
+
+	void clear()
+	{
+		kernels.clear();
+		bufferHeap.clear();
+	}
 };
 }
 

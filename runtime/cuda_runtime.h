@@ -2,6 +2,10 @@
 
 #include <chrono>
 
+#define cudaMemAttachGlobal 0x01
+#define cudaMemAttachHost 0x02
+#define cudaMemAttachSingle 0x04
+
 // TODO: https://www.cs.cmu.edu/afs/cs/academic/class/15668-s11/www/cuda-doc/html
 //		/group__CUDART__TYPES_g3f51e3575c2178246db0a94a430e0038.html#g3f51e3575c2178246db0a94a430e0038
 typedef enum cudaError
@@ -92,6 +96,7 @@ cudaError_t cudaMallocPitch(void** devPtr, size_t* pitch, size_t width, size_t h
 cudaError_t cudaFree(void* devPtr);
 cudaError_t cudaMemcpy2D(void* dst, size_t dpitch, const void* src, size_t spitch, size_t width, size_t height, cudaMemcpyKind kind);
 cudaError_t cudaMalloc(void** devPtr, size_t size);
+cudaError_t cudaMallocManaged(void** devPtr, size_t size, unsigned int flags = cudaMemAttachGlobal);
 cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind);
 cudaError_t cudaEventCreate(cudaEvent_t* event);
 cudaError_t cudaEventRecord(cudaEvent_t event, cudaStream_t stream = 0);

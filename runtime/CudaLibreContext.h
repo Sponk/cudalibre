@@ -77,6 +77,12 @@ public:
 			d.setSources("");
 	}
 
+	void clear()
+	{
+		for(auto& d : cudaDevices)
+			d.clear();
+	}
+
 	/**
 	 * @brief Fetches the currently used kernel code.
 	 * @return The kernel source string.

@@ -113,9 +113,9 @@ cudaError_t cu::CudaDevice::callKernel(const char* name, const dim3& gridsize, c
 	for(auto p : args)
 	{
 		// Check if variable is a valid handle
-		auto bufiter = bufferHeap.find(*static_cast<size_t*>(p.second));
+		auto bufiter = bufferHeap.find(*static_cast<void**>(p.second));
 		if(bufiter != bufferHeap.end())
-			kernel->setArg(i++, bufiter->second);
+			kernel->setArg(i++, *bufiter->second.buffer);
 		else
 			kernel->setArg(i++, p.first, p.second);
 	}
@@ -142,13 +142,13 @@ cudaError_t cu::CudaDevice::mallocPitch(void** devPtr, size_t* pitch, size_t wid
 {
 	int err = 0;
 
-	cl::Buffer& buf = bufferHeap[++bufferHeapIndex];
-	buf = cl::Buffer(context, CL_MEM_READ_WRITE, width * height, NULL, &err);
+	cl::Buffer* buf = new cl::Buffer(context, CL_MEM_READ_WRITE, width * height, nullptr, &err);
+	bufferHeap[buf] = UnifiedBuffer(nullptr, buf);
 
 	checkErr(err, "Buffer::Buffer()");
 
 	*pitch = width; // FIXME: Setting pitch to the simple value. Should figure out the HW optimal value!
-	*devPtr = (void*) bufferHeapIndex; // Hand out the handle to the buffer
+	*devPtr = (void*) buf; // Hand out the handle to the buffer
 
 	return clerr2cuderr(err);
 }
@@ -157,11 +157,25 @@ cudaError_t cu::CudaDevice::malloc(void** devPtr, size_t size)
 {
 	int err = 0;
 
-	cl::Buffer& buf = bufferHeap[++bufferHeapIndex];
-	buf = cl::Buffer(context, CL_MEM_READ_WRITE, size, NULL, &err);
+	cl::Buffer* buf = new cl::Buffer(context, CL_MEM_READ_WRITE, size, nullptr, &err);
+	bufferHeap[buf] = UnifiedBuffer(nullptr, buf);
 
 	checkErr(err, "Buffer::Buffer()");
-	*devPtr = (void*) bufferHeapIndex; // Hand out the handle to the buffer
+	*devPtr = (void*) buf; // Hand out the handle to the buffer
+
+	return clerr2cuderr(err);
+}
+
+cudaError_t cu::CudaDevice::mallocManaged(void** devPtr, size_t size, unsigned int flags)
+{
+	int err = 0;
+
+	cl::Buffer* buf = new cl::Buffer(context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, size, nullptr, &err);
+	void* mem = queue.enqueueMapBuffer(*buf, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, size, nullptr, nullptr, &err);
+	bufferHeap[mem] = UnifiedBuffer(mem, buf);
+
+	checkErr(err, "Buffer::Buffer()");
+	*devPtr = mem; // Hand out the handle to the buffer
 
 	return clerr2cuderr(err);
 }
@@ -170,18 +184,18 @@ cudaError_t cu::CudaDevice::memcpy2D(void* dst, size_t dpitch, const void* src, 
 {
 	int err = 0;
 
-	auto bufiter = bufferHeap.find(reinterpret_cast<size_t>(dst));
+	auto bufiter = bufferHeap.find(dst);
 	if(bufiter == bufferHeap.end())
 		return cudaErrorMemoryAllocation;
 
 	switch(kind)
 	{
 		case cudaMemcpyHostToDevice: // FIXME: Should this be blocking or asynchronous?
-			err = queue.enqueueWriteBuffer(bufiter->second, CL_TRUE, 0, width * height, src, NULL, NULL);
+			err = queue.enqueueWriteBuffer(*bufiter->second.buffer, CL_TRUE, 0, width * height, src, NULL, NULL);
 			break;
 
 		case cudaMemcpyDeviceToHost:
-			err = queue.enqueueReadBuffer(bufiter->second, CL_TRUE, 0, width * height, (void*) src, NULL, NULL);
+			err = queue.enqueueReadBuffer(*bufiter->second.buffer, CL_TRUE, 0, width * height, (void*) src, NULL, NULL);
 			break;
 
 		default: return cudaErrorNotImplemented;
@@ -195,18 +209,18 @@ cudaError_t cu::CudaDevice::memcpy(void* dst, const void* src, size_t count, cud
 {
 	int err = 0;
 
-	auto bufiter = bufferHeap.find(reinterpret_cast<size_t>(dst));
+	auto bufiter = bufferHeap.find(dst);
 	if(bufiter == bufferHeap.end())
 		return cudaErrorMemoryAllocation;
 
 	switch(kind)
 	{
 		case cudaMemcpyHostToDevice: // FIXME: Should this be blocking or asynchronous?
-			err = queue.enqueueWriteBuffer(bufiter->second, CL_TRUE, 0, count, src, NULL, NULL);
+			err = queue.enqueueWriteBuffer(*bufiter->second.buffer, CL_TRUE, 0, count, src, NULL, NULL);
 			break;
 
 		case cudaMemcpyDeviceToHost:
-			err = queue.enqueueReadBuffer(bufiter->second, CL_TRUE, 0, count, (void*) src, NULL, NULL);
+			err = queue.enqueueReadBuffer(*bufiter->second.buffer, CL_TRUE, 0, count, (void*) src, NULL, NULL);
 			break;
 
 		default: return cudaErrorNotImplemented;
@@ -218,10 +232,17 @@ cudaError_t cu::CudaDevice::memcpy(void* dst, const void* src, size_t count, cud
 
 cudaError_t cu::CudaDevice::free(void* ptr)
 {
-	auto bufiter = bufferHeap.find(reinterpret_cast<size_t>(ptr));
+	auto bufiter = bufferHeap.find(ptr);
 	if(bufiter == bufferHeap.end())
 		return cudaErrorMemoryAllocation;
 
+	// It's a managed buffer!
+	if(bufiter->second.host != nullptr)
+	{
+		queue.enqueueUnmapMemObject(*bufiter->second.buffer, bufiter->second.host);
+	}
+
+	delete bufiter->second.buffer;
 	bufferHeap.erase(bufiter);
 	return cudaSuccess;
 }
