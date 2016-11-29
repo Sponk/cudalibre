@@ -6,3 +6,5 @@ include_directories(
 
 add_executable(runtime-tests main.cpp EnumerationTest.cpp KernelTest.cpp ../CudaDevice.cpp ../CudaDevice.h)
 target_link_libraries(runtime-tests clruntime ${GTEST_LIBRARIES})
+
+# add_test(RuntimeTest runtime-tests)

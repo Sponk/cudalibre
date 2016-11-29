@@ -8,5 +8,6 @@ add_flex_bison_dependency(lexertest parsertest)
 
 add_executable(clcc-tests main.cpp ParserTest.cpp  ${BISON_parsertest_OUTPUTS} ${FLEX_lexertest_OUTPUTS})
 
-add_dependencies(clcc-tests lexer parser)
 target_link_libraries(clcc-tests ${GTEST_LIBRARIES})
+
+add_test(CompilerTest clcc-tests)

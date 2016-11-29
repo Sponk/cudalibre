@@ -55,11 +55,12 @@ set(GTEST_LIBRARIES gtest)
 set(GTEST_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/gtest/googletest/src)
 
 include("CudaLibre")
+enable_testing()
 
 add_subdirectory(gtest)
 add_subdirectory(src)
 add_subdirectory(runtime)
-# add_subdirectory(examples)
+add_subdirectory(examples)
 add_subdirectory(docs)
 
 # CMake install package
