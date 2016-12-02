@@ -3,6 +3,11 @@
 #include <cmath>
 #include "common.h"
 
+__device__ void func()
+{
+
+}
+
 __global__ void add(float* a, float* b, float* c)
 {
 	unsigned int id = threadIdx.x;

@@ -15,6 +15,12 @@
 #define CUDALIBRE_STANDARD_INCLUDES "./"
 #endif
 
+#ifndef NO_LINES
+#define LINE(line, file) "#line " << (line) + 1 << " \"" << (file) << "\"" << std::endl
+#else
+#define LINE(line, file) ""
+#endif
+
 extern "C" int yylex();
 extern "C" int yyparse();
 extern FILE *yyin;
@@ -28,6 +34,7 @@ void handle_command(char* cmd, std::vector<char*>* args);
 #define YY_NO_UNPUT
 #define YYERROR_VERBOSE
 
+const char* currfile = "null";
 int currline = 1;
 stringstream cppstream, clstream;
 
@@ -93,6 +100,8 @@ string& generateKernelCall(string& str)
 
 string& generateKernelDef(string& str)
 {
+	return str;
+	
 	stringstream ss;
 
 	int index = str.find("(") + 1;
@@ -168,9 +177,27 @@ parser:
 		;
 
 file:
-	global_function { /*cppstream << *$1;*/ clstream << "__kernel " << generateKernelDef(*$1) << endl; delete $1; }
-	| device_function { clstream << *$1 << endl; delete $1; }
-	| shared_variable { clstream << *$1 << endl; delete $1; }
+	global_function 
+	{
+		clstream << *$1 << endl;
+		//clstream << "__kernel " << generateKernelDef(*$1) << endl;
+		delete $1; 
+
+		cppstream << LINE(currline, currfile);
+	}
+	| device_function 
+	{
+		clstream << *$1 << endl; 
+		delete $1;
+		
+		cppstream << LINE(currline, currfile);
+	}
+	
+	| shared_variable 
+	{
+		clstream << *$1 << endl; delete $1;
+		cppstream << LINE(currline, currfile);
+	}
 	| STRUCT { clstream << *$1 << endl; cppstream << *$1 << endl; delete $1; }
 	| TYPEDEF { clstream << *$1 << endl; cppstream << *$1 << endl; delete $1; }
 	| INCLUDE { clstream << *$1 << endl; cppstream << *$1 << endl; delete $1; }
@@ -226,11 +253,11 @@ global_function:
 
 device_function:
 	DEVICE line code_block 
-	{ 
+	{ /*
 		// Remove __device__ keyword. It is not needed in OpenCL
 		int idx = $1->find("__device__");
 		if(idx != string::npos)
-			$1->erase(idx, 10);
+			$1->erase(idx, 10);*/
 		
 		*$1 += *$2 + *$3;
 		delete $3;
@@ -305,6 +332,8 @@ string runPreprocessor(const string& src)
 }
 #endif
 
+std::string transformCudaClang(const std::string &code);
+
 static bool parserError = false;
 int parse()
 {
@@ -332,14 +361,15 @@ int parse()
 #endif
 
 	std::string clcode = clstream.str();
-	clstream.str(runPreprocessor(clcode));
+	clstream.str(transformCudaClang(runPreprocessor(clcode)));
 
 	// cout << "Produced C++: " << endl << cppstream.str() << endl << "OpenCL: " << endl << clstream.str() << endl;
 	return 0;
 }
 
-int parse(FILE *fp)
+int parse(FILE *fp, const char* file)
 {
+	currfile = file;
 	yyin = fp;
 	return parse();
 }

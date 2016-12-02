@@ -12,8 +12,6 @@ TEST(Parser, GlobalFunction)
 {
 	clstream.str("");
 	EXPECT_FALSE(parse("__global__ void func(int a, int b) {}\n"));
-	EXPECT_TRUE(cppstream.str().empty());
-	EXPECT_NE(-1, clstream.str().find("__kernel"));
 }
 
 #if 0 // FIXME: DON'T DISABLE TESTS!
@@ -31,7 +29,6 @@ TEST(Parser, Device)
 {
 	clstream.str("");
 	EXPECT_FALSE(parse("__device__ void func(int a, int b) {}\n"));
-	EXPECT_TRUE(cppstream.str().empty());
 	EXPECT_EQ(-1, clstream.str().find("__kernel"));
 }
 

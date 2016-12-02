@@ -1,17 +1,18 @@
 #pragma once
 
 const char* cuda_header =
+	"#define __global__ __attribute__((annotate(\"global\")))\n"
+	"#define __device__ __attribute__((annotate(\"device\")))\n"
+
 	"#define __CUDACC__\n"
 	"#define __constant__ __constant\n"
 	"#define __shared__ __local\n"
-	"#define __device__ __global\n"
 	"#define gridDim (num_groups2dim3())\n"
 	"#define blockDim (local_size2dim3())\n"
 	"#define blockIdx (group_id2dim3())\n"
 	"#define threadIdx (local_id2dim3())\n"
 	"#define __syncthreads() barrier(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE)\n"
 	"#define __threadfence_block() mem_fence(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE)\n"
-	"#define __global__\n"
 	"typedef struct { int x; int y; int z; } dim3;\n"
 	"dim3 num_groups2dim3() {\n"
 	"\tdim3 dim;\n"

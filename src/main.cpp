@@ -11,7 +11,7 @@
 using namespace std;
 extern stringstream cppstream, clstream;
 
-int parse(FILE *fp); // From parser.y
+int parse(FILE *fp, const char* file); // From parser.y
 
 void replacestr(std::string& str, const std::string& search, const std::string& replace);
 
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	int result = parse(f);
+	int result = parse(f, opt.input.c_str());
 	ofstream cppout(opt.output);
 
 	if(!cppout)
