@@ -8,3 +8,6 @@ add_test(VectorTest VectorTest)
 
 cuda_add_executable(VectorManagedTest VectorManagedTest.cu)
 add_test(VectorManagedTest VectorManagedTest)
+
+cuda_add_executable(StructTest StructTest.cu)
+add_test(StructTest StructTest)

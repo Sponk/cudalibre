@@ -12,3 +12,4 @@
 					}
 
 #define CUDA_CHECK_LAST CUDA_CHECK(cudaGetLastError())
+#define CMP_FLOAT(x, y, epsilon) (fabs((x) - (y)) > (epsilon))
