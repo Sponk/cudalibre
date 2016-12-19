@@ -1,7 +1,7 @@
 #include <cuda_runtime.h>
 #include <iostream>
 #include <cmath>
-#include "common.h"
+#include <common.h>
 
 typedef struct
 {

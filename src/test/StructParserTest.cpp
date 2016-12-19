@@ -5,7 +5,7 @@ using namespace std;
 
 bool parseStruct(const string& src);
 std::string parseKernel(const std::string& src);
-std::string transformCudaClang(const std::string &code);
+std::pair<std::string, std::string> transformCudaClang(const std::string &code);
 
 TEST(StructParserTest, SimpleKernel)
 {

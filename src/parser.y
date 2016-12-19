@@ -67,12 +67,12 @@ string& generateKernelCall(string& str)
 	stringstream ss;
 	string tmp = str;
 	tmp.erase(tmp.find("<<<"));
-	ss << "cu::callKernel(\"" << tmp << "\", ";
-	
+	ss << "call" << tmp << "(";
+
 	tmp = str;
 	tmp = tmp.substr(tmp.find("<<<") + 3);
 	tmp.erase(tmp.find(">>>"));
-	ss << tmp;
+		ss << tmp;
 	
 	tmp = str;
 	tmp = tmp.substr(tmp.find(">>>") + 4);
@@ -85,13 +85,11 @@ string& generateKernelCall(string& str)
 		vector<string> args;
 		splitstr(tmp, ',', args);
 
-		ss << ", cu::ArgumentList({";
+		ss << ", ";
 		for(int i = 0; i < args.size(); i++)
-			ss << "CU_KERNEL_ARG(" << args[i] << ((i == args.size() - 1) ? ")" : "), ");
-			//ss << "{ sizeof(" << args[i] << "), " << args[i] << "}" << ((i == args.size() - 1) ? "" : ", ");
+			ss << args[i] << ((i == args.size() - 1) ? ")" : ", ");
 
-		//ss << "{0, nullptr}}";
-		ss << "}));";
+		ss << ";";
 	}
 
 	str = ss.str();
@@ -332,7 +330,7 @@ string runPreprocessor(const string& src)
 }
 #endif
 
-std::string transformCudaClang(const std::string &code);
+std::pair<std::string, std::string> transformCudaClang(const std::string &code);
 
 static bool parserError = false;
 int parse()
@@ -361,7 +359,10 @@ int parse()
 #endif
 
 	std::string clcode = clstream.str();
-	clstream.str(transformCudaClang(runPreprocessor(clcode)));
+	std::pair<std::string, std::string> transformationResult = transformCudaClang(runPreprocessor(clcode));
+
+	clstream.str(transformationResult.first);
+	cppstream.str(transformationResult.second + cppstream.str());
 
 	// cout << "Produced C++: " << endl << cppstream.str() << endl << "OpenCL: " << endl << clstream.str() << endl;
 	return 0;
