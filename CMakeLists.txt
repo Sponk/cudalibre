@@ -48,7 +48,7 @@ set(CMAKE_MODULE_PATH
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(CLCC_EXECUTABLE ${CMAKE_BINARY_DIR}/src/clcc)
+set(CULCC_EXECUTABLE ${CMAKE_BINARY_DIR}/src/clcc)
 set(LibreCuda_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/runtime)
 set(LibreCuda_LIBRARIES clruntime)
 set(GTEST_LIBRARIES gtest)
@@ -64,8 +64,8 @@ add_subdirectory(examples)
 add_subdirectory(docs)
 
 # CMake install package
-export(TARGETS clcc clruntime FILE "${PROJECT_BINARY_DIR}/CudaLibreTargets.cmake")
-export(PACKAGE LibreCuda)
+export(TARGETS culcc clruntime FILE "${PROJECT_BINARY_DIR}/CudaLibreTargets.cmake")
+export(PACKAGE CudaLibre)
 
 set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
 configure_file(CMake/CudaLibreConfig.cmake.in "${PROJECT_BINARY_DIR}/CudaLibreConfig.cmake" @ONLY)

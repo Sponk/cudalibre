@@ -15,15 +15,15 @@ macro(cuda_add_executable name)
             if(${_CU_POS} STREQUAL 3)
                 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp "") ## Ensure the file exists for use in the CudaLibre build system
 
-                add_custom_target(${arg}_clcc ALL COMMAND ${CLCC_EXECUTABLE} -s ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
+                add_custom_target(${arg}_culcc ALL COMMAND ${CULCC_EXECUTABLE} -s ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
 
-                # clcc is not yet built when configuring, so it can't be called yet.
-                # execute_process(COMMAND ${CLCC_EXECUTABLE} -s ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
+                # culcc is not yet built when configuring, so it can't be called yet.
+                # execute_process(COMMAND ${CULCC_EXECUTABLE} -s ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
 
-                add_dependencies(${arg}_clcc clcc)
+                add_dependencies(${arg}_culcc culcc)
 
                 list(APPEND _SOURCELIST ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
-                list(APPEND _CUDA_DEPS ${arg}_clcc)
+                list(APPEND _CUDA_DEPS ${arg}_culcc)
             endif()
         endif(${_CU_POS} STREQUAL -1)
     endforeach()

@@ -2,20 +2,20 @@
 # It defines the following variables
 #  CudaLibre_INCLUDE_DIRS - include directories for FooBar
 #  CudaLibre_LIBRARIES    - libraries to link against
-#  CLCC_EXECUTABLE   - the CudaLibre compiler executable
+#  CULCC_EXECUTABLE   - the CudaLibre compiler executable
  
 # Compute paths
 get_filename_component(CUDALIBRE_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 set(CudaLibre_INCLUDE_DIRS "@CMAKE_INSTALL_PREFIX@/include/cudalibre")
  
 # Our library dependencies (contains definitions for IMPORTED targets)
-if(NOT TARGET clcc AND NOT CudaLibre_BINARY_DIR)
+if(NOT TARGET culcc AND NOT CudaLibre_BINARY_DIR)
   include("${CUDALIBRE_CMAKE_DIR}/CudaLibreTargets.cmake")
 endif()
  
 # These are IMPORTED targets created by CudaLibreTargets.cmake
 set(CudaLibre_LIBRARIES clruntime)
-set(CLCC_EXECUTABLE clcc)
+set(CULCC_EXECUTABLE culcc)
 
 include(FindPackageHandleStandardArgs)
 find_package(OpenCL REQUIRED)
@@ -34,11 +34,11 @@ macro(cuda_add_executable name)
             math(EXPR _CU_POS "(${_CU_LEN})-(${_CU_POS})")
             if(${_CU_POS} STREQUAL 3)
 			    string(REPLACE "/" "_" _ARGNAME ${arg})
-                add_custom_target(${_ARGNAME}_clcc ALL COMMAND ${CLCC_EXECUTABLE} -s ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
-                execute_process(COMMAND ${CLCC_EXECUTABLE} -s ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
+                add_custom_target(${_ARGNAME}_culcc ALL COMMAND ${CULCC_EXECUTABLE} -s ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
+                execute_process(COMMAND ${CULCC_EXECUTABLE} -s ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
 
                 list(APPEND _SOURCELIST ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
-                list(APPEND _CUDA_DEPS ${_ARGNAME}_clcc)
+                list(APPEND _CUDA_DEPS ${_ARGNAME}_culcc)
             endif()
         endif(${_CU_POS} STREQUAL -1)
     endforeach()
@@ -67,11 +67,11 @@ macro(cuda_add_library name)
             math(EXPR _CU_POS "(${_CU_LEN})-(${_CU_POS})")
             if(${_CU_POS} STREQUAL 3)
 			    string(REPLACE "/" "_" _ARGNAME ${arg})
-                add_custom_target(${_ARGNAME}_clcc ALL COMMAND ${CLCC_EXECUTABLE} -s ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
-                execute_process(COMMAND ${CLCC_EXECUTABLE} -s ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
+                add_custom_target(${_ARGNAME}_culcc ALL COMMAND ${CULCC_EXECUTABLE} -s ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
+                execute_process(COMMAND ${CULCC_EXECUTABLE} -s ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
 
                 list(APPEND _SOURCELIST ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
-                list(APPEND _CUDA_DEPS ${_ARGNAME}_clcc)
+                list(APPEND _CUDA_DEPS ${_ARGNAME}_culcc)
             endif()
         endif(${_CU_POS} STREQUAL -1)
     endforeach()

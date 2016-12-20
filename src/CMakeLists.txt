@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
-project(lccc)
+project(CudaLibre)
 
 find_path(LibClang_INCLUDE_DIR clang-c/Index.h)
 find_library(LIBCLANG_LIBRARY NAMES clang)
@@ -18,13 +18,13 @@ bison_target(parser parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cc)
 flex_target(lexer lexer.l  ${CMAKE_CURRENT_BINARY_DIR}/lexer.cc)
 add_flex_bison_dependency(lexer parser)
 
-add_executable(clcc 
+add_executable(culcc
 		${BISON_parser_OUTPUTS} ${FLEX_lexer_OUTPUTS} 
 		main.cpp
 		ClangTool.cpp)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CLANG_INCLUDE_DIRS} ${LLVM_INCLUDE_DIR})
-target_link_libraries(clcc
+target_link_libraries(culcc
   clangFrontend
   clangSerialization
   clangDriver
@@ -44,7 +44,7 @@ target_link_libraries(clcc
 #    add_definitions(-DCUDALIBRE_STANDARD_INCLUDES="${CMAKE_INSTALL_PREFIX}/include/cudalibre")
 #endif()
 
-install(TARGETS clcc
+install(TARGETS culcc
         EXPORT CudaLibreTargets
         RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin)
 
