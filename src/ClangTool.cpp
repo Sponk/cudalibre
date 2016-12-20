@@ -82,7 +82,9 @@ public:
 			// @todo Can't handle pointers for now. Needs runtime workaround for OpenCL.
 			if(c->getType()->isAnyPointerType())
 			{
-				rewriter.InsertTextBefore(c->getOuterLocStart(), "// Pointers in structs need to be emulated\n// ");
+				rewriter.InsertTextBefore(c->getOuterLocStart(),
+										  std::string("// Pointers in structs need to be emulated\n") +
+				"unsigned int filler" + c->getNameAsString() + "; // This keeps the struct the right size for OpenCL\n// ");
 				//llvm::report_fatal_error("CudaLibre: Cannot handle pointers in structures right now!\n");
 			}
 		}
@@ -143,7 +145,8 @@ public:
 
 								// Insert pointer
 								cppBody << "CU_KERNEL_ARG(" << param->getNameAsString() << "." << c->getNameAsString();
-								cppBody << ")" << ((i < f->getNumParams() - 1) ? ", " : "");
+								cppBody << "), "; // Unconditional ',' since there is always the struct after the pointer
+								// << ((i < f->getNumParams() - 1) ? ", " : "");
 							}
 						}
 					}
