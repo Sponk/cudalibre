@@ -14,7 +14,7 @@
 #ifndef CUDALIBRE_STANDARD_INCLUDES
 #define CUDALIBRE_STANDARD_INCLUDES "./"
 #endif
-
+#define NO_LINES
 #ifndef NO_LINES
 #define LINE(line, file) "#line " << (line) + 1 << " \"" << (file) << "\"" << std::endl
 #else

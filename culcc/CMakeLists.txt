@@ -21,7 +21,8 @@ add_flex_bison_dependency(lexer parser)
 add_executable(culcc
 		${BISON_parser_OUTPUTS} ${FLEX_lexer_OUTPUTS} 
 		main.cpp
-		ClangTool.cpp)
+		ClangTool.cpp
+		ClangCompiler.cpp)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CLANG_INCLUDE_DIRS} ${LLVM_INCLUDE_DIR})
 target_link_libraries(culcc
