@@ -4,7 +4,7 @@ if(USE_CL1)
   add_definitions(-DUSE_CL1)
 endif()
 
-add_library(clruntime cudalibre.cpp cudalibre.h CudaDevice.cpp CudaDevice.h CudaLibreContext.cpp CudaLibreContext.h)
+add_library(clruntime SHARED cudalibre.cpp cudalibre.h CudaDevice.cpp CudaDevice.h CudaLibreContext.cpp CudaLibreContext.h)
 target_link_libraries(clruntime ${OpenCL_LIBRARIES})
 include_directories(${OpenCL_INCLUDE_DIR})
 

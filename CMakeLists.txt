@@ -48,7 +48,7 @@ set(CMAKE_MODULE_PATH
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(CULCC_EXECUTABLE ${CMAKE_BINARY_DIR}/src/clcc)
+set(CULCC_EXECUTABLE ${CMAKE_BINARY_DIR}/culcc/culcc)
 set(LibreCuda_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/runtime)
 set(LibreCuda_LIBRARIES clruntime)
 set(GTEST_LIBRARIES gtest)
@@ -58,7 +58,8 @@ include("CudaLibre")
 enable_testing()
 
 add_subdirectory(gtest)
-add_subdirectory(src)
+add_subdirectory(culcc)
+add_subdirectory(culccd)
 add_subdirectory(runtime)
 add_subdirectory(examples)
 add_subdirectory(docs)
@@ -83,6 +84,8 @@ install(FILES
 install(EXPORT CudaLibreTargets DESTINATION
         "${INSTALL_CMAKE_DIR}" COMPONENT dev)
 
+#install(FILES culccd
+ #       RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin)
 
 ## Uninstall target
 configure_file(
