@@ -260,10 +260,9 @@ public:
 };
 
 static cl::OptionCategory MyToolCategory("culcc options");
-// static cl::extrahelp CommonHelp(CommonOptionsParser::HelpMessage);
-static cl::extrahelp CommonHelp("e = mc²");
+static cl::extrahelp CommonHelp("CudaLibre CUDA preprocessor v" VERSION_STRING);
 
-static cl::extrahelp MoreHelp("\nculcc is nice!");
+static cl::extrahelp MoreHelp("\nA CUDA preprocessor that consumes CUDA code and produces C++14 and OpenCL 2.x code.");
 static llvm::cl::opt<std::string>
 	OutputFilename("o", llvm::cl::desc("<output file>"), llvm::cl::Required);
 
