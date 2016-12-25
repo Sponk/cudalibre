@@ -37,10 +37,12 @@ int main(int argc, char** argv)
 	for(auto& s : gccArgs)
 		args << " " << s;
 
-	args << " " << source << ".cpp";
-
 	std::string culccArgs = "culcc ";
-	culccArgs += source;
+
+	// produces something like "culcc <source> -o <out> -- <some args>"
+	culccArgs += source + " -o " + source + ".cpp -- " + args.str();
+
+	// std::cout << culccArgs << std::endl;
 
 	if(system(culccArgs.c_str()))
 	{
@@ -48,5 +50,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	// Add source file here so it does not interfere with the culccArgs earlier
+	args << " " << source << ".cpp";
 	return system(args.str().c_str());
 }
