@@ -73,7 +73,7 @@ void parseArg(int argc, char** argv, Options& options)
     }
 }
 
-int main(int argc, char **argv)
+int main_old(int argc, char **argv)
 {
 	// cout << "LibreCUDA compiler v0.1" << endl;
 

@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 	for(int i = 0; i < TESTSIZE; i++) b[i] = TESTSIZE - i;
 
 	// Test addition kernel
-	add<<<1, TESTSIZE>>>(a, b, c);
+	add<<<1, 32>>>(a, b, c);
 	CUDA_CHECK_LAST;
 	CUDA_CHECK(cudaDeviceSynchronize());
 

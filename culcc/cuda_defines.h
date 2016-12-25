@@ -1,6 +1,6 @@
 #pragma once
 
-const char* cuda_header =
+static const char* cuda_header =
 	"#define __global__ __attribute__((annotate(\"global\")))\n"
 	"#define __device__ __attribute__((annotate(\"device\")))\n"
 

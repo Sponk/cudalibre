@@ -33,23 +33,7 @@ enum cudaMemcpyKind
 	cudaMemcpyDefault
 };
 
-struct dim3
-{
-	dim3(int x, int y, int z)
-		: x(x), y(y), z(z) {}
-
-	dim3(int x, int y)
-		: x(x), y(y), z(0) {}
-
-	dim3(int x)
-		: x(x), y(0), z(0) {}
-
-	dim3() : x(0), y(0), z(0) {}
-
-	int x;
-	int y;
-	int z;
-};
+#include "cuda_types.h"
 
 typedef struct
 {
@@ -114,3 +98,9 @@ cudaError_t cudaSetDevice(int device);
  */
 cudaError_t cudaDeviceSynchronize();
 cudaError_t cudaThreadSynchronize();
+
+/// Only needed so the compiler does not fail
+extern int cudaConfigureCall(dim3 gridDim,
+							 dim3 blockDim,
+							 int sharedMem = 0,
+							 int stream = 0);

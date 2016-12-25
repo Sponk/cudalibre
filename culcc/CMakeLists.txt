@@ -11,18 +11,19 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 find_package(Clang REQUIRED clangTooling libClang)
 
-find_package(BISON REQUIRED)
-find_package(FLEX REQUIRED)
+#find_package(BISON REQUIRED)
+#find_package(FLEX REQUIRED)
 
-bison_target(parser parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cc)
-flex_target(lexer lexer.l  ${CMAKE_CURRENT_BINARY_DIR}/lexer.cc)
-add_flex_bison_dependency(lexer parser)
+#bison_target(parser parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cc)
+#flex_target(lexer lexer.l  ${CMAKE_CURRENT_BINARY_DIR}/lexer.cc)
+#add_flex_bison_dependency(lexer parser)
 
 add_executable(culcc
-		${BISON_parser_OUTPUTS} ${FLEX_lexer_OUTPUTS} 
-		main.cpp
+		#${BISON_parser_OUTPUTS} ${FLEX_lexer_OUTPUTS}
+		# main.cpp
 		ClangTool.cpp
-		ClangCompiler.cpp)
+		ClangCompiler.cpp
+		ClangCLProcessor.cpp)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CLANG_INCLUDE_DIRS} ${LLVM_INCLUDE_DIR})
 target_link_libraries(culcc

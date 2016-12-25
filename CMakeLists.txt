@@ -84,9 +84,6 @@ install(FILES
 install(EXPORT CudaLibreTargets DESTINATION
         "${INSTALL_CMAKE_DIR}" COMPONENT dev)
 
-#install(FILES culccd
- #       RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin)
-
 ## Uninstall target
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/CMake/uninstall.cmake.in"

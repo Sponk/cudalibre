@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
 	CUDA_CHECK(cudaMemcpy(db, b, sizeof(float) * TESTSIZE, cudaMemcpyHostToDevice));
 
 	// Test addition kernel
-	add<<<1, TESTSIZE>>>(da, db, dc);
+	add<<<1, 32>>>(da, db, dc);
 	CUDA_CHECK_LAST;
 
 	CUDA_CHECK(cudaMemcpy2D(dc, pitch, c, sizeof(float), sizeof(float), TESTSIZE, cudaMemcpyDeviceToHost));

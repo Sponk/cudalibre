@@ -1,5 +1,6 @@
 #include <sstream>
 #include <iostream>
+#include <memory>
 
 #include <clang/AST/AST.h>
 #include <clang/AST/ASTConsumer.h>
@@ -10,157 +11,131 @@
 #include <clang/Rewrite/Core/Rewriter.h>
 #include <clang/Tooling/CommonOptionsParser.h>
 #include <clang/Tooling/Tooling.h>
+#include <stdlib.h>
+#include <fstream>
+#include <getopt.h>
+#include <cstring>
+
+#include "GNUBlacklist.h"
+
+#define VERSION_STRING "0.1"
 
 using namespace clang;
 using namespace clang::driver;
 using namespace clang::tooling;
 
-class ASTVisitor : public RecursiveASTVisitor<ASTVisitor>
+int transformCudaClang(const std::string &code, std::string& result);
+
+class CUDAASTVisitor : public RecursiveASTVisitor<CUDAASTVisitor>
 {
 public:
-	ASTVisitor(Rewriter &R, std::stringstream& cppResult) : rewriter(R), cppResult(cppResult) {}
+	CUDAASTVisitor(Rewriter &R, std::stringstream& cppResult, std::stringstream& clResult)
+		: rewriter(R), cppResult(cppResult), clResult(clResult) {}
 
-	bool VisitStmt(Stmt* s)
+	bool isInBlacklist(Decl* d)
 	{
-		// If access belongs to a structure with pointer,
-		// translate it!
-		switch(s->getStmtClass())
-		{
-			case clang::Stmt::MemberExprClass:
-			{
-				clang::MemberExpr* member = static_cast<clang::MemberExpr*>(s);
-				if (member->getType()->isAnyPointerType())
-				{
-					rewriter.ReplaceText(s->getSourceRange(),
-										 rewriter.getRewrittenText(member->getBase()->getSourceRange())
-											 + "_"
-											 + member->getMemberNameInfo().getAsString());
-				}
-			}
-			break;
-		}
+		std::string fullname = d->getASTContext().getSourceManager().getFilename(d->getLocation()).str();
+		int idx = fullname.find_last_of("/");
 
-		return true;
+		if(idx != std::string::npos)
+			fullname = fullname.substr(idx + 1);
+
+		return fullname.empty() || headerBlacklist[fullname];
 	}
 
-	bool VisitDecl(Decl* d)
+	bool VisitTypedefDecl(TypedefDecl* t)
 	{
-		if(d->getKind() == Decl::Var
-			&& d->isLexicallyWithinFunctionOrMethod())
+		if(!isInBlacklist(t))
 		{
-			VarDecl* var = static_cast<VarDecl*>(d);
-
-			if(var == nullptr
-				|| var->getType()->getAsTagDecl() == nullptr
-				|| var->getType()->getAsTagDecl()->getKind() != Decl::CXXRecord)
-				return true;
-
-			RecordDecl* recdecl = static_cast<RecordDecl*>(var->getType()->getAsTagDecl());
-
-			for(FieldDecl* c : recdecl->fields())
-			{
-				// Pointer need to be moved out of the struct
-				if(c->getType()->isAnyPointerType())
-				{
-					rewriter.InsertTextBefore(var->getLocStart(),
-											  c->getType()->getPointeeType().getAsString()
-											  + "* "
-											  + var->getNameAsString()
-											  + "_"
-											  + c->getNameAsString() + ";\n"
-					);
-				}
-			}
+			clResult << rewriter.getRewrittenText(t->getSourceRange()) << ";" << std::endl;
 		}
-		return true;
 	}
 
 	bool VisitRecordDecl(RecordDecl* r)
 	{
-		for(FieldDecl* c : r->fields())
+		if(!r->getNameAsString().empty() && !isInBlacklist(r))
 		{
-			// @todo Can't handle pointers for now. Needs runtime workaround for OpenCL.
-			if(c->getType()->isAnyPointerType())
-			{
-				rewriter.InsertTextBefore(c->getOuterLocStart(),
-										  std::string("// Pointers in structs need to be emulated\n") +
-				"unsigned int filler" + c->getNameAsString() + "; // This keeps the struct the right size for OpenCL\n// ");
-				//llvm::report_fatal_error("CudaLibre: Cannot handle pointers in structures right now!\n");
-			}
+			clResult << rewriter.getRewrittenText(r->getSourceRange()) << ";" << std::endl;
 		}
+		return true;
+	}
+
+	bool VisitCUDAKernelCallExpr(CUDAKernelCallExpr* e)
+	{
+		FunctionDecl* decl = static_cast<FunctionDecl*>(e->getCalleeDecl());
+		CallExpr* config = e->getConfig();
+
+		std::stringstream newDecl;
+		newDecl << "call" << decl->getNameAsString() << "("
+				<< rewriter.getRewrittenText(config->getArg(0)->getSourceRange()) << ", "
+				<< rewriter.getRewrittenText(config->getArg(1)->getSourceRange()) << (e->getNumArgs() ? ", " : "");
+
+		rewriter.ReplaceText(SourceRange(e->getLocStart(), config->getLocEnd().getLocWithOffset(3)), newDecl.str());
 		return true;
 	}
 
 	bool VisitFunctionDecl(FunctionDecl *f)
 	{
-		if (f->hasBody())
+		bool isGlobal = f->hasAttr<CUDAGlobalAttr>();
+		bool isDevice = f->hasAttr<CUDADeviceAttr>();
+
+		if (!isInBlacklist(f) && (isGlobal || isDevice))
 		{
-			// Add __kernel if needed
 			std::stringstream SSBefore;
-			AnnotateAttr* attribute = f->getAttr<AnnotateAttr>();
 
-			if(attribute && attribute->getAnnotation().str() == "global")
+			// Construct C++ wrapper
+			std::stringstream cppArglist;
+			cppArglist << "#define call" << f->getNameAsString() << "(grid, block";
+
+			std::stringstream cppBody;
+			cppBody << "\tcu::callKernel(\"" << f->getNameAsString() << "\", ";
+			cppBody << "grid, block, cu::ArgumentList({";
+
+			for(int i = 0; i < f->getNumParams(); i++)
 			{
-				rewriter.RemoveText(attribute->getLocation().getLocWithOffset(-15), 35);
-				SSBefore << "__kernel";
-				SourceLocation ST = f->getSourceRange().getBegin();
-				rewriter.InsertText(ST, SSBefore.str(), true, true);
+				auto param = f->getParamDecl(i);
 
-				// Construct C++ wrapper
-				std::stringstream cppArglist;
-				//cppArglist << "void " << f->getNameAsString() << "(dim3 grid, dim3 block, ";
-				cppArglist << "#define call" << f->getNameAsString() << "(grid, block";
-
-				std::stringstream cppBody;
-				cppBody << "\tcu::callKernel(\"" << f->getNameAsString() << "\", ";
-				cppBody << "grid, block, cu::ArgumentList({";
-
-				for(int i = 0; i < f->getNumParams(); i++)
+				cppArglist << ", " << param->getNameAsString();
+				if(param->getType()->isRecordType())
 				{
-					auto param = f->getParamDecl(i);
-
-					cppArglist << ", " << param->getNameAsString();
-					if(param->getType()->isAnyPointerType())
+					for(FieldDecl* c : static_cast<RecordDecl*>(param->getType()->getAsTagDecl())->fields())
 					{
-						SSBefore.str("");
-						SSBefore << "__global ";
-
-						rewriter.InsertText(param->getSourceRange().getBegin(), SSBefore.str(), true, true);
-					}
-					else if(param->getType()->isRecordType())
-					{
-						for(FieldDecl* c : static_cast<RecordDecl*>(param->getType()->getAsTagDecl())->fields())
+						// Pointer need to be moved out of the struct
+						if(c->getType()->isAnyPointerType())
 						{
-							// Pointer need to be moved out of the struct
-							if(c->getType()->isAnyPointerType())
-							{
-								rewriter.InsertTextBefore(param->getLocStart(),
-														  "__global "
-														  + c->getType()->getPointeeType().getAsString()
-															+ "* "
-															+ param->getNameAsString()
-															+ "_"
-															+ c->getNameAsString() + ", "
-								);
-
-								// Insert pointer
-								cppBody << "CU_KERNEL_ARG(" << param->getNameAsString() << "." << c->getNameAsString();
-								cppBody << "), "; // Unconditional ',' since there is always the struct after the pointer
-								// << ((i < f->getNumParams() - 1) ? ", " : "");
-							}
+							// Insert pointer
+							cppBody << "CU_KERNEL_ARG(" << param->getNameAsString() << "." << c->getNameAsString();
+							cppBody << "), "; // Unconditional ',' since there is always the struct after the pointer
 						}
 					}
-					// Pointers are inserted before
-					cppBody << "CU_KERNEL_ARG(" << param->getNameAsString();
-					cppBody << ")" << ((i < f->getNumParams() - 1) ? ", " : "");
 				}
 
-				cppBody << "}));";
-
-				cppArglist << ")\\" << std::endl;
-				cppResult << cppArglist.str() << "{\\\n" << cppBody.str() << "\\\n}\n";
-
+				// Pointers are inserted before
+				cppBody << "CU_KERNEL_ARG(" << param->getNameAsString();
+				cppBody << ")" << ((i < f->getNumParams() - 1) ? ", " : "");
 			}
+
+			cppBody << "}));";
+
+			cppArglist << ")\\" << std::endl;
+			cppResult << cppArglist.str() << "{\\\n" << cppBody.str() << "\\\n}\n";
+
+			int offset = -1;
+			auto bodyLoc = f->getBody()->getLocStart();
+			auto bodyLocEnd = f->getBody()->getLocEnd();
+
+			std::string specifier = (isGlobal) ? "__global__" : "__device__";
+
+			while (rewriter.getRewrittenText(SourceRange(bodyLoc.getLocWithOffset(offset), bodyLocEnd))
+				.find(specifier) != 0)
+				offset--;
+
+			// Get function definition
+			clResult << (isGlobal ? "__kernel" : "")
+					 << rewriter.getRewrittenText(SourceRange(bodyLoc.getLocWithOffset(offset + specifier.size()), bodyLocEnd))
+					 << std::endl;
+
+			rewriter.RemoveText(SourceRange(bodyLoc.getLocWithOffset(offset), bodyLocEnd));
 		}
 
 		return true;
@@ -169,12 +144,13 @@ public:
 private:
 	Rewriter& rewriter;
 	std::stringstream& cppResult;
+	std::stringstream& clResult;
 };
 
 class CUDAASTConsumer : public ASTConsumer
 {
 public:
-	CUDAASTConsumer(Rewriter &R, std::stringstream& cppResult) : visitor(R, cppResult) {}
+	CUDAASTConsumer(Rewriter &R, std::stringstream& cppResult, std::stringstream& clResult) : visitor(R, cppResult, clResult) {}
 	bool HandleTopLevelDecl(DeclGroupRef DR) override
 	{
 		for (DeclGroupRef::iterator b = DR.begin(), e = DR.end(); b != e; ++b)
@@ -186,54 +162,159 @@ public:
 	}
 
 private:
-	ASTVisitor visitor;
+	CUDAASTVisitor visitor;
 };
 
 class CUDAFrontendAction : public ASTFrontendAction
 {
+	std::string resultString;
 	llvm::raw_string_ostream result;
-	std::stringstream cppResult;
-	std::string& cppResultStr;
+	std::stringstream& cppResult;
+	std::stringstream& clResult;
 
 public:
-	CUDAFrontendAction(std::string& resultStr, std::string& cppStr) : result(resultStr), cppResultStr(cppStr) {}
+	CUDAFrontendAction(std::stringstream& cppResult, std::stringstream& clResult) :
+		result(resultString),
+		cppResult(cppResult),
+		clResult(clResult){}
+
+	void replacestr(std::string& str, const std::string& search, const std::string& replace)
+	{
+		for(size_t idx = 0;; idx += replace.length())
+		{
+			idx = str.find(search, idx);
+			if(idx == std::string::npos)
+				break;
+
+			str.erase(idx, search.length());
+			str.insert(idx, replace);
+		}
+	}
+
+	std::string stringify(const std::string& str)
+	{
+		std::string result = str;
+
+		replacestr(result, "\\", "\\\\");
+		replacestr(result, "\"", "\\\"");
+		replacestr(result, "\n", "\\n\"\n\"");
+
+		return "\"" + result + "\"";
+	}
+
 	void EndSourceFileAction() override
 	{
 		SourceManager &SM = TheRewriter.getSourceMgr();
 		TheRewriter.getEditBuffer(SM.getMainFileID()).write(result);
-		cppResultStr = cppResult.str();
+
+		result.flush();
+
+		std::string clOutput;
+		if(transformCudaClang(clResult.str(), clOutput))
+		{
+			std::cerr << "Error while translating CUDA code!" << std::endl;
+			//exit(-1);
+		}
+
+		// Write some comment to make understanding the generated code easier
+		cppResult << "#include <cudalibre.h>" << std::endl;
+		cppResult << "// Save the CUDA -> OpenCL translated code into a string" << std::endl;
+		cppResult << std::endl << "// Use an anonymous namespace to provide an constructor function that sets up the runtime environment." << std::endl;
+		cppResult << "namespace { class LibreCudaInitializer { " << std::endl;
+		cppResult << "static constexpr const char* cudalibre_clcode = " << stringify(clOutput) << ";" << std::endl;
+		cppResult << "public: LibreCudaInitializer() { cu::initCudaLibre(cudalibre_clcode); } } init; }"
+				  << std::endl << std::endl;
+
+		cppResult << "// The C++ code written by the user" << std::endl;
+		cppResult << resultString << std::endl;
 	}
 
 	std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
 												   StringRef file) override
 	{
 		TheRewriter.setSourceMgr(CI.getSourceManager(), CI.getLangOpts());
-		return llvm::make_unique<CUDAASTConsumer>(TheRewriter, cppResult);
+		return llvm::make_unique<CUDAASTConsumer>(TheRewriter, cppResult, clResult);
 	}
+
+	std::string getCppResult() const { return cppResult.str(); }
+	std::string getCLResult() const { return clResult.str(); }
 
 private:
 	Rewriter TheRewriter;
 };
 
-std::pair<std::string, std::string> transformCudaClang(const std::string &code)
+using namespace clang::tooling;
+using namespace llvm;
+
+class CUDAFrontendActionFactory : public FrontendActionFactory
 {
-	std::string src;
+	std::stringstream& cppResult;
+	std::stringstream& clResult;
+public:
 
-	src = "// Ensures our compiler does not cough up at OpenCL builtins.\n"
-		"#ifdef __CLANG_CUDALIBRE__\n"
-		"extern int get_num_groups(int);\n"
-		"extern int get_local_size(int);\n"
-		"extern int get_group_id(int);\n"
-		"extern int get_local_id(int);\n"
-		"#endif\n";
+	CUDAFrontendActionFactory(std::stringstream& cppResult, std::stringstream& clResult) :
+		cppResult(cppResult),
+		clResult(clResult){}
 
-	src += code;
+	clang::FrontendAction *create() override { return new CUDAFrontendAction(cppResult, clResult); }
+};
 
-	std::string result;
-	std::string cppResult;
-	auto frontend = new CUDAFrontendAction(result, cppResult);
+static cl::OptionCategory MyToolCategory("culcc options");
+// static cl::extrahelp CommonHelp(CommonOptionsParser::HelpMessage);
+static cl::extrahelp CommonHelp("e = mc²");
 
-	runToolOnCodeWithArgs(frontend, src, {"-fsyntax-only", "-D__CLANG_CUDALIBRE__"});
+static cl::extrahelp MoreHelp("\nculcc is nice!");
+static llvm::cl::opt<std::string>
+	OutputFilename("o", llvm::cl::desc("<output file>"), llvm::cl::Required);
 
-	return std::pair<std::string, std::string>(result, cppResult);
+int main(int argc, char** argv)
+{
+	CommonOptionsParser opts(argc, (const char**) argv, MyToolCategory);
+	ClangTool tool(opts.getCompilations(), opts.getSourcePathList());
+
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fsyntax-only"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-nocudainc"));
+	//tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-nocudalib"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("--cuda-host-only"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__global__=__attribute__((global))"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__device__=__attribute__((device))"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDALIBRE_CLANG__"));
+
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-I/home/yannick/projects/cudalibre/runtime"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-I/usr/include/cudalibre"));
+
+	std::stringstream llvmVersion;
+	// Calcualate manually since LLVM_VERSION_STRING might include some "svn" postfix
+	/// @todo Only works on UNIX!
+	llvmVersion << "-I/usr/lib/clang/"
+				<< LLVM_VERSION_MAJOR << "." << LLVM_VERSION_MINOR << "." << LLVM_VERSION_PATCH
+				<< "/include/";
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster(llvmVersion.str().c_str()));
+
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-include"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("cuda_types.h"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-std=c++14"));
+
+	std::stringstream cppResult;
+	std::stringstream clResult;
+
+	auto frontendFactory = std::unique_ptr<CUDAFrontendActionFactory>(new CUDAFrontendActionFactory(cppResult, clResult));
+	int result = tool.run(frontendFactory.get());
+
+	if(result != 0)
+	{
+		std::cerr << "Error while finding CUDA code!" << std::endl;
+		return result;
+	}
+
+	std::ofstream out(OutputFilename.getValue());
+	if(!out)
+	{
+		std::cerr << "Could not write output file!" << std::endl;
+		return 1;
+	}
+
+	out << cppResult.str();
+
+	return result;
 }

@@ -1,7 +1,7 @@
 #include <cuda_runtime.h>
 #include <iostream>
 #include <cmath>
-#include <common.h>
+#include "common.h"
 
 typedef struct
 {
@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
 	CUDA_CHECK(cudaMemcpy(db, b, sizeof(vec3) * TESTSIZE, cudaMemcpyHostToDevice));
 
 	// Test addition kernel
-	add<<<1, TESTSIZE>>>(da, db, dc);
+	add<<<1, 32>>>(da, db, dc);
 	CUDA_CHECK_LAST;
 
 	CUDA_CHECK(cudaMemcpy2D(dc, pitch, c, sizeof(vec3), sizeof(vec3), TESTSIZE, cudaMemcpyDeviceToHost));

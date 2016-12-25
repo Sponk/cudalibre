@@ -15,7 +15,8 @@ __global__ void add(struct Vector a, struct Vector b, struct Vector c)
 	c.data[id] = a.data[id] + b.data[id];
 }
 
-#define TESTSIZE 16
+const unsigned int TESTSIZE = 16;
+//#define TESTSIZE 16
 int main(int argc, char* argv[])
 {
 
@@ -41,7 +42,7 @@ int main(int argc, char* argv[])
 	dav.size = TESTSIZE;
 
 	// Test addition kernel
-	add<<<1, TESTSIZE>>>(dav, dbv, dcv);
+	add<<<1, 16>>>(dav, dbv, dcv);
 	CUDA_CHECK_LAST;
 
 	CUDA_CHECK(cudaMemcpy2D(dcv.data, pitch, c, sizeof(float), sizeof(float), TESTSIZE, cudaMemcpyDeviceToHost));

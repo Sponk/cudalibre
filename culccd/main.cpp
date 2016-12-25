@@ -39,8 +39,8 @@ int main(int argc, char** argv)
 
 	args << " " << source << ".cpp";
 
-	std::string culccArgs = "culcc -s ";
-	culccArgs += source + " -o " + source + ".cpp";
+	std::string culccArgs = "culcc ";
+	culccArgs += source;
 
 	if(system(culccArgs.c_str()))
 	{

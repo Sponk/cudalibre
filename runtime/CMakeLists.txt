@@ -8,7 +8,7 @@ add_library(clruntime SHARED cudalibre.cpp cudalibre.h CudaDevice.cpp CudaDevice
 target_link_libraries(clruntime ${OpenCL_LIBRARIES})
 include_directories(${OpenCL_INCLUDE_DIR})
 
-set_target_properties(clruntime PROPERTIES PUBLIC_HEADER "cudalibre.h;cuda_runtime.h")
+set_target_properties(clruntime PROPERTIES PUBLIC_HEADER "cudalibre.h;cuda_runtime.h;cuda_types.h")
 
 install(TARGETS clruntime
         EXPORT CudaLibreTargets
