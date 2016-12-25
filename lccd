@@ -1,5 +1,0 @@
-#!/bin/sh -e
-# This is the LibreCUDA Compiler Driver used to build CUDA sources into full executables
-
-$LIBRECUDA_DIR/lccc $1
-g++ $1.cpp -o $1.out $(pkg-config --libs --cflags OpenCL) -L$LIBRECUDA_LIBS -llcruntime -Wl,-rpath=. -I$LIBRECUDA_INCLUDE
