@@ -81,6 +81,25 @@ public:
 
 		if (!isInBlacklist(f) && (isGlobal || isDevice))
 		{
+			// Definition only needs to be removed
+			if(!f->hasBody())
+			{
+				int offset = -1;
+				SourceLocation location = f->getLocation();
+				SourceLocation end = f->getLocEnd().getLocWithOffset(1);
+				std::string specifier = (isGlobal) ? "__global__" : "__device__";
+
+				while (rewriter.getRewrittenText(SourceRange(location.getLocWithOffset(offset), end))
+					.find(specifier) != 0)
+					offset--;
+
+				rewriter.RemoveText(SourceRange(
+					location.getLocWithOffset(offset),
+					end));
+
+				return true;
+			}
+
 			std::stringstream SSBefore;
 
 			// Construct C++ wrapper
@@ -121,7 +140,7 @@ public:
 			cppResult << cppArglist.str() << "{\\\n" << cppBody.str() << "\\\n}\n";
 
 			int offset = -1;
-			auto bodyLoc = f->getBody()->getLocStart();
+			auto bodyLoc = f->getLocation();
 			auto bodyLocEnd = f->getBody()->getLocEnd();
 
 			std::string specifier = (isGlobal) ? "__global__" : "__device__";
@@ -132,10 +151,13 @@ public:
 
 			// Get function definition
 			clResult << (isGlobal ? "__kernel" : "")
-					 << rewriter.getRewrittenText(SourceRange(bodyLoc.getLocWithOffset(offset + specifier.size()), bodyLocEnd))
+					 << rewriter.getRewrittenText(SourceRange(bodyLoc.getLocWithOffset(offset + specifier.size()),
+																  bodyLocEnd))
 					 << std::endl;
 
-			rewriter.RemoveText(SourceRange(bodyLoc.getLocWithOffset(offset), bodyLocEnd));
+			rewriter.RemoveText(SourceRange(
+				bodyLoc.getLocWithOffset(offset),
+				bodyLocEnd));
 		}
 
 		return true;

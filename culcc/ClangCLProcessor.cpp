@@ -257,6 +257,8 @@ int transformCudaClang(const std::string &code, std::string& result)
 		"#define __local __attribute__((annotate(\"local\")))\n"
 		"struct dim3{int x; int y; int z;};\n"
 		"dim3 threadIdx;\n"
+		"dim3 blockIdx;\n"
+		"dim3 blockDim;\n"
 		"#endif\n";
 
 	src += "\n\n" + code;
