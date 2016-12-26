@@ -21,10 +21,9 @@ struct dim3
 
 // Some stuff used in the compiler to prevent errors while transforming code
 #ifdef __CUDALIBRE_CLANG__
-
-/// The device annotation is used to transport definitions to the
-/// OpenCL translator but will be removed in the final result
-__attribute__((annotate("device"))) dim3 threadIdx;
+dim3 threadIdx;
+dim3 blockIdx;
+dim3 blockDim;
 #endif
 
 #endif
