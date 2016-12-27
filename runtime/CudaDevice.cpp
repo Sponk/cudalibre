@@ -54,9 +54,9 @@ cudaError_t cu::CudaDevice::buildKernel(const char* sources)
 static inline void calculateWorksize(const dim3& gridsize, const dim3& blocksize,
 									 	cl::NDRange& local, cl::NDRange& global)
 {
-	DEBUG("localWork %d %d %d globalWork %d %d %d",
-		  blocksize.x, blocksize.y, blocksize.z,
-		  blocksize.x * gridsize.x, blocksize.y * gridsize.y, blocksize.z * gridsize.z);
+	//DEBUG("localWork %d %d %d globalWork %d %d %d",
+	//	  blocksize.x, blocksize.y, blocksize.z,
+	//	  blocksize.x * gridsize.x, blocksize.y * gridsize.y, blocksize.z * gridsize.z);
 
 	if (blocksize.y == 0.0f)
 	{

@@ -24,6 +24,13 @@
 
 #include "cuda_runtime.h"
 
+/**
+ * @defgroup cudalibre_runtime CudaLibre Runtime
+ * @addtogroup cudalibre_runtime
+ *
+ *  @{
+ */
+
 #define __DEBUG__
 #ifdef __DEBUG__
 #define DEBUG(format, ...) fprintf(stdout, "Debug in %s at %d: " format "\n", __FILE__, __LINE__, ## __VA_ARGS__ )

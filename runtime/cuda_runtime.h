@@ -2,6 +2,12 @@
 
 #include <chrono>
 
+/**
+ * @defgroup cuda_runtime CUDA Runtime
+ * @addtogroup cuda_runtime
+ *  @{
+ */
+
 #define cudaMemAttachGlobal 0x01
 #define cudaMemAttachHost 0x02
 #define cudaMemAttachSingle 0x04
@@ -104,3 +110,7 @@ extern int cudaConfigureCall(dim3 gridDim,
 							 dim3 blockDim,
 							 int sharedMem = 0,
 							 int stream = 0);
+
+/**
+ * @}
+ */
