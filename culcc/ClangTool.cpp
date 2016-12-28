@@ -1,6 +1,6 @@
 #include <sstream>
 #include <iostream>
-#include  <iomanip>
+#include <iomanip>
 #include <memory>
 
 #include <clang/AST/AST.h>
@@ -16,6 +16,8 @@
 #include <fstream>
 #include <getopt.h>
 #include <cstring>
+
+#include <cudalibre.h>
 
 #include "GNUBlacklist.h"
 
@@ -279,11 +281,15 @@ public:
 		
 		if(GencodeSPIR.getValue())
 		{
+			cu::SPIRHeader header;
 			std::vector<unsigned char> program;
 			compileSpir(clOutput, program);
 			
+			header.magic = cu::SPIRBIN_MAGIC;
+			header.size = program.size();
+			
 			cppResult << "public: LibreCudaInitializer() { cu::initCudaLibreSPIR((const unsigned char[]) {"
-				  << byteify(program.data(), program.size()) << "} , " << program.size() << "); }" << std::endl;
+				  << byteify((const unsigned char*) &header, sizeof(header)) << ", " << byteify(program.data(), program.size()) << "}); }" << std::endl;
 		}
 		else
 		{

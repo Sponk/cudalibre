@@ -51,9 +51,17 @@ class CudaLibreContext;
 
 static const int CUDALIBRE_MAJOR = 2;
 static const int CUDALIBRE_MINOR = 0;
+static const uint SPIRBIN_MAGIC = 0xDEADBEEF;
+
+struct SPIRHeader
+{
+	uint32_t magic;
+	uint32_t size;
+	/// A Lot of data here!
+};
 
 void initCudaLibre(const char* sources);
-void initCudaLibreSPIR(const unsigned char* sources, size_t size);
+void initCudaLibreSPIR(const unsigned char* sources);
 void resetCudaLibre();
 std::shared_ptr<cu::CudaLibreContext> getCudaLibreContext();
 
