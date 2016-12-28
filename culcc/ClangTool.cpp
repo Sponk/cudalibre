@@ -304,8 +304,6 @@ int main(int argc, char** argv)
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__global__=__attribute__((global))"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__device__=__attribute__((device))"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDALIBRE_CLANG__"));
-
-	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-I/home/yannick/projects/cudalibre/runtime"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-I/usr/include/cudalibre"));
 
 	std::stringstream llvmVersion;
