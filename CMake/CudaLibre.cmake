@@ -15,7 +15,7 @@ macro(cuda_add_executable name)
             if(${_CU_POS} STREQUAL 3)
                 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp "") ## Ensure the file exists for use in the CudaLibre build system
 
-                add_custom_target(${arg}_culcc ALL COMMAND ${CULCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp --)
+                add_custom_target(${arg}_culcc ALL COMMAND ${CULCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp -gencode-spir --)
 
                 # culcc is not yet built when configuring, so it can't be called yet.
                 # execute_process(COMMAND ${CULCC_EXECUTABLE} -s ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)

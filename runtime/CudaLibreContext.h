@@ -20,6 +20,8 @@ class CudaLibreContext
 	std::stringstream sources;
 	cl::Context clcontext;
 
+	std::vector<std::pair<const unsigned char*, size_t>> binaries;
+	
 public:
 	CudaLibreContext();
 
@@ -65,6 +67,13 @@ public:
 		sources << src;
 		for(auto& d : cudaDevices)
 			d.setSources(sources.str().c_str());
+	}
+	
+	void addBinary(const unsigned char* src, size_t size)
+	{
+		binaries.push_back(std::pair<const unsigned char*, size_t>(src, size));
+		for(auto& d : cudaDevices)
+			d.addBinary(src, size);
 	}
 
 	/**

@@ -10,6 +10,6 @@ int compileSpir(const std::string& src, std::vector<unsigned char>& program)
 	auto context = cu::getCudaLibreContext();
 	auto device = context->getCurrentDevice();
 
-	device.buildKernel(src.c_str());
+	device.buildSources(src.c_str());
 	device.getProgramBinaries(program);
 }

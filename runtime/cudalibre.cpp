@@ -30,17 +30,24 @@ using namespace cu;
 
 static shared_ptr<cu::CudaLibreContext> g_context = nullptr;
 
-#define ENSURE_INIT { if(g_context == nullptr) { g_context = make_shared<cu::CudaLibreContext>(); g_context->addSources(initialSources); }}
+#define ENSURE_INIT { if(g_context == nullptr) { g_context = make_shared<cu::CudaLibreContext>(); }} // g_context->addSources(initialSources); }}
 #define RETURN_ERROR(x) s_lastError = x; return s_lastError;
 static cudaError_t s_lastError = cudaSuccess;
 
 namespace cu
 {
 
-static const char* initialSources;
 void initCudaLibre(const char* sources)
 {
-	initialSources = sources;
+	auto context = getCudaLibreContext();
+	context->addSources(sources);
+}
+
+void initCudaLibreSPIR(const unsigned char* sources, size_t size)
+{
+	auto context = getCudaLibreContext();
+	context->addBinary(sources, size);
+	
 }
 
 void resetCudaLibre()

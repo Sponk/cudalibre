@@ -19,6 +19,7 @@ class CudaDevice
 	cl::CommandQueue queue;
 
 	std::unordered_map<std::string, cl::Kernel> kernels;
+	cl::Program::Binaries binaries;
 
 	std::string kernelcode;
 	bool kernelCompiled = false;
@@ -82,8 +83,19 @@ public:
 	 * @param sources The OpenCL sources.
 	 * @return A CUDA error code or cudaSuccess.
 	 */
-	cudaError_t buildKernel(const char* sources);
-
+	cudaError_t buildSources(const char* sources, cl::Program& program);
+	cudaError_t buildKernel(const char* sources, const cl::Program::Binaries& binaries);
+	cudaError_t buildSources(const char* sources)
+	{
+		return buildSources(sources, program);
+	}
+	
+	void addBinary(const unsigned char* src, size_t size)
+	{
+		binaries.push_back(std::pair<const void*, size_t>(src, size));
+		kernelCompiled = false;
+	}
+	
 	/**
 	 * @brief Calls a kernel on the device.
 	 * @param name The kernel name.

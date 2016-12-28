@@ -1,5 +1,6 @@
 #include <sstream>
 #include <iostream>
+#include  <iomanip>
 #include <memory>
 
 #include <clang/AST/AST.h>
@@ -24,6 +25,20 @@ using namespace clang;
 using namespace clang::driver;
 using namespace clang::tooling;
 
+static llvm::cl::OptionCategory MyToolCategory("culcc options");
+static llvm::cl::extrahelp CommonHelp("CudaLibre CUDA preprocessor v" VERSION_STRING);
+
+static llvm::cl::extrahelp MoreHelp("\nA CUDA preprocessor that consumes CUDA code and produces C++14 and OpenCL 2.x code.");
+static llvm::cl::opt<std::string>
+	OutputFilename("o", llvm::cl::desc("<output file>"), llvm::cl::Required);
+
+//static llvm::cl::opt<bool>
+//	GencodeCL("gencode=cl", llvm::cl::desc("Generate OpenCL source code"), llvm::cl::Optional);
+	
+static llvm::cl::opt<bool>
+	GencodeSPIR("gencode-spir", llvm::cl::desc("Generate OpenCL SPIR binaries"), llvm::cl::Optional);
+	
+int compileSpir(const std::string& src, std::vector<unsigned char>& program);
 int transformCudaClang(const std::string &code, std::string& result);
 
 class CUDAASTVisitor : public RecursiveASTVisitor<CUDAASTVisitor>
@@ -223,6 +238,21 @@ public:
 
 		return "\"" + result + "\"";
 	}
+	
+	std::string byteify(const unsigned char* bytes, size_t size)
+	{
+		const int width = 20;
+		std::stringstream output;
+		for(int i = 0; i < size - 1; i++)
+		{
+			output << "0x" << std::setfill('0') << std::setw(2) << std::hex << (uint) bytes[i] << ", ";
+			if(i % width == 0)
+				output << std::endl;
+		}
+		output << "0x" << std::setfill('0') << std::setw(2) << std::hex << (uint) bytes[size - 1] << std::endl;
+		
+		return output.str();
+	}
 
 	void EndSourceFileAction() override
 	{
@@ -241,14 +271,27 @@ public:
 		clResult.str(clOutput);
 
 		// Write some comment to make understanding the generated code easier
-		cppResult << "#include <cudalibre.h>" << std::endl;
-		cppResult << "// Save the CUDA -> OpenCL translated code into a string" << std::endl;
-		cppResult << std::endl << "// Use an anonymous namespace to provide an constructor function that sets up the runtime environment." << std::endl;
-		cppResult << "namespace { class LibreCudaInitializer { " << std::endl;
-		cppResult << "static constexpr const char* cudalibre_clcode = " << stringify(clOutput) << ";" << std::endl;
-		cppResult << "public: LibreCudaInitializer() { cu::initCudaLibre(cudalibre_clcode); } } init; }"
-				  << std::endl << std::endl;
-
+		cppResult << "#include <cudalibre.h>" << std::endl
+			  << "// Save the CUDA -> OpenCL translated code into a string" << std::endl << std::endl
+			  << "// Use an anonymous namespace to provide an constructor function that sets up the runtime environment." << std::endl
+			  << "namespace { " << std::endl
+			  << "class LibreCudaInitializer { " << std::endl;
+		
+		if(GencodeSPIR.getValue())
+		{
+			std::vector<unsigned char> program;
+			compileSpir(clOutput, program);
+			
+			cppResult << "public: LibreCudaInitializer() { cu::initCudaLibreSPIR((const unsigned char[]) {"
+				  << byteify(program.data(), program.size()) << "} , " << program.size() << "); }" << std::endl;
+		}
+		else
+		{
+			cppResult << "static constexpr const char* cudalibre_clcode = " << stringify(clOutput) << ";" << std::endl
+				  << "public: LibreCudaInitializer() { cu::initCudaLibre(cudalibre_clcode); }" << std::endl;
+		}
+		
+		cppResult << "} init; }" << std::endl << std::endl;
 		cppResult << "// The C++ code written by the user" << std::endl;
 		cppResult << resultString << std::endl;
 	}
@@ -282,15 +325,6 @@ public:
 
 	clang::FrontendAction *create() override { return new CUDAFrontendAction(cppResult, clResult); }
 };
-
-static cl::OptionCategory MyToolCategory("culcc options");
-static cl::extrahelp CommonHelp("CudaLibre CUDA preprocessor v" VERSION_STRING);
-
-static cl::extrahelp MoreHelp("\nA CUDA preprocessor that consumes CUDA code and produces C++14 and OpenCL 2.x code.");
-static llvm::cl::opt<std::string>
-	OutputFilename("o", llvm::cl::desc("<output file>"), llvm::cl::Required);
-
-int compileSpir(const std::string& src, std::vector<unsigned char>& program);
 
 int main(int argc, char** argv)
 {

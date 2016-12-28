@@ -53,6 +53,7 @@ static const int CUDALIBRE_MAJOR = 2;
 static const int CUDALIBRE_MINOR = 0;
 
 void initCudaLibre(const char* sources);
+void initCudaLibreSPIR(const unsigned char* sources, size_t size);
 void resetCudaLibre();
 std::shared_ptr<cu::CudaLibreContext> getCudaLibreContext();
 

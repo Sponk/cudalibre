@@ -32,7 +32,7 @@ void cu::CudaDevice::setSources(const char* sources)
 	kernelcode = sources;
 }
 
-cudaError_t cu::CudaDevice::buildKernel(const char* sources)
+cudaError_t cu::CudaDevice::buildSources(const char* sources, cl::Program& program)
 {
 #if !defined(USE_CL1) && !defined(WIN32)
 	cl::Program::Sources source(1, sources); //source(1, std::make_pair(sources, strlen(sources)));
@@ -50,6 +50,41 @@ cudaError_t cu::CudaDevice::buildKernel(const char* sources)
 	}
 
 	return clerr2cuderr(err);
+}
+
+cudaError_t cu::CudaDevice::buildKernel(const char* sources, const cl::Program::Binaries& binaries)
+{
+	int err;
+	if(strlen(sources) > 0 && binaries.size())
+	{
+		/*cl::Program sourceProg;
+		buildSources(sources, sourceProg);
+
+		cl::Program binProg(context, {device}, binaries);
+		program.build({device}, NULL, NULL, &err);
+		//binProg.compile({device}, NULL, NULL, &err);
+		checkErr(err, "binaryProgram");
+
+		program = cl::linkProgram(sourceProg, binProg, NULL, NULL, &err);
+		checkErr(err, "linkProgram");
+		return cudaSuccess;*/
+		
+		std::cerr << "Mixing OpenCL source and binary components is not yet supported!" << std::endl;
+		return cudaErrorNotImplemented;
+	}
+	else if(strlen(sources))
+	{
+		return buildSources(sources, program);
+	}
+	else if(binaries.size())
+	{
+		program = cl::Program(context, {device}, binaries, NULL, &err);
+		program.build({device}, NULL, NULL, &err);
+		if(checkErr(err, "binaryProgram"))
+			return cudaErrorInitializationError;
+		
+		return cudaSuccess;
+	}
 }
 
 void cu::CudaDevice::getProgramBinaries(std::vector<unsigned char>& data)
@@ -97,7 +132,7 @@ cudaError_t cu::CudaDevice::callKernel(const char* name, const dim3& gridsize, c
 
 	// Make sure the kernelcode has been built
 	if(!hasKernel())
-		buildKernel(kernelcode.c_str());
+		buildKernel(kernelcode.c_str(), binaries);
 
 	// Check if the kernel is cached or needs to be built
 	cl::Kernel* kernel = nullptr;
