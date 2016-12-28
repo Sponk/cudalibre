@@ -13,9 +13,10 @@ find_package(Clang REQUIRED clangTooling libClang)
 
 add_executable(culcc
 		ClangTool.cpp
-		ClangCLProcessor.cpp)
+		ClangCLProcessor.cpp
+		Spir.cpp)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CLANG_INCLUDE_DIRS} ${LLVM_INCLUDE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CLANG_INCLUDE_DIRS} ${LLVM_INCLUDE_DIR} ../runtime)
 target_link_libraries(culcc
   clangFrontend
   clangSerialization
@@ -28,6 +29,7 @@ target_link_libraries(culcc
   clangEdit
   clangLex
   clangTooling
+  clruntime
 )
 
 install(TARGETS culcc

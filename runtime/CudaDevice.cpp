@@ -1,6 +1,7 @@
 #include "CudaDevice.h"
 #include "CudaLibreContext.h"
 #include <iostream>
+#include <numeric>
 
 using namespace std;
 using cu::checkErr;
@@ -34,13 +35,13 @@ void cu::CudaDevice::setSources(const char* sources)
 cudaError_t cu::CudaDevice::buildKernel(const char* sources)
 {
 #if !defined(USE_CL1) && !defined(WIN32)
-	cl::Program::Sources source(1, sources); //source(1, std::make_pair(sources, strlen(sources) + 1));
+	cl::Program::Sources source(1, sources); //source(1, std::make_pair(sources, strlen(sources)));
 #else
-	cl::Program::Sources source(1, std::make_pair(sources, strlen(sources) + 1));
+	cl::Program::Sources source(1, std::make_pair(sources, strlen(sources)));
 #endif
 
 	program = cl::Program(context, source);
-	int err = program.build({device});
+	int err = program.build({device}, "-x spir");
 
 	if(checkErr(err, sources))
 	{
@@ -49,6 +50,15 @@ cudaError_t cu::CudaDevice::buildKernel(const char* sources)
 	}
 
 	return clerr2cuderr(err);
+}
+
+void cu::CudaDevice::getProgramBinaries(std::vector<unsigned char>& data)
+{
+	const vector<size_t> sizes = program.getInfo<CL_PROGRAM_BINARY_SIZES>();
+	vector<char*> programs = program.getInfo<CL_PROGRAM_BINARIES>();
+
+	data.resize(sizes[0]);
+	std::copy(programs[0], programs[0] + sizes[0], data.begin());
 }
 
 static inline void calculateWorksize(const dim3& gridsize, const dim3& blocksize,

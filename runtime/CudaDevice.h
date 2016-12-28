@@ -95,6 +95,7 @@ public:
 	cudaError_t callKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const cu::ArgumentList& args = cu::ArgumentList());
 
 	void setSources(const char* sources);
+	void getProgramBinaries(std::vector<unsigned char>& data);
 
 	void clear()
 	{

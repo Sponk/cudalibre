@@ -238,6 +238,8 @@ public:
 			//exit(-1);
 		}
 
+		clResult.str(clOutput);
+
 		// Write some comment to make understanding the generated code easier
 		cppResult << "#include <cudalibre.h>" << std::endl;
 		cppResult << "// Save the CUDA -> OpenCL translated code into a string" << std::endl;
@@ -287,6 +289,8 @@ static cl::extrahelp CommonHelp("CudaLibre CUDA preprocessor v" VERSION_STRING);
 static cl::extrahelp MoreHelp("\nA CUDA preprocessor that consumes CUDA code and produces C++14 and OpenCL 2.x code.");
 static llvm::cl::opt<std::string>
 	OutputFilename("o", llvm::cl::desc("<output file>"), llvm::cl::Required);
+
+int compileSpir(const std::string& src, std::vector<unsigned char>& program);
 
 int main(int argc, char** argv)
 {

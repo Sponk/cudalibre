@@ -83,6 +83,8 @@ public:
 			d.clear();
 	}
 
+	cl::Context& getContext() { return clcontext; }
+
 	/**
 	 * @brief Fetches the currently used kernel code.
 	 * @return The kernel source string.

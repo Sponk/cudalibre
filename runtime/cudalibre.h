@@ -46,11 +46,15 @@
 namespace cu
 {
 
+// Forward decl
+class CudaLibreContext;
+
 static const int CUDALIBRE_MAJOR = 2;
 static const int CUDALIBRE_MINOR = 0;
 
 void initCudaLibre(const char* sources);
 void resetCudaLibre();
+std::shared_ptr<cu::CudaLibreContext> getCudaLibreContext();
 
 template<typename T> void* addressOf(const T& src) { return (void*) &src; }
 typedef std::vector<std::pair<size_t, void*>> ArgumentList;

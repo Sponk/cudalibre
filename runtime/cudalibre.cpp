@@ -38,7 +38,6 @@ namespace cu
 {
 
 static const char* initialSources;
-
 void initCudaLibre(const char* sources)
 {
 	initialSources = sources;
@@ -48,6 +47,12 @@ void resetCudaLibre()
 {
 	g_context->clear();
 	g_context = nullptr;
+}
+
+shared_ptr<cu::CudaLibreContext> getCudaLibreContext()
+{
+	ENSURE_INIT;
+	return g_context;
 }
 
 cudaError_t callKernel(const char* name, const dim3& gridsize, const dim3& blocksize, const cu::ArgumentList& args)
