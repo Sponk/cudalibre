@@ -178,12 +178,12 @@ public:
 							if(c->getType()->isAnyPointerType())
 							{
 								rewriter.InsertTextBefore(param->getLocStart(),
-														  "__global "
-															  + c->getType()->getPointeeType().getAsString()
-															  + "* "
-															  + param->getNameAsString()
-															  + "_"
-															  + c->getNameAsString() + ", "
+											  "__global "
+											  + c->getType()->getPointeeType().getAsString()
+											  + "* "
+											  + param->getNameAsString()
+											  + "_"
+											  + c->getNameAsString() + ", "
 								);
 							}
 						}
@@ -246,7 +246,6 @@ private:
 int transformCudaClang(const std::string &code, std::string& result)
 {
 	std::string src;
-
 	src = "// Ensures our compiler does not cough up at OpenCL builtins.\n"
 		"#ifdef __CLANG_CUDALIBRE__\n"
 		"extern int get_num_groups(int);\n"
@@ -261,6 +260,7 @@ int transformCudaClang(const std::string &code, std::string& result)
 		"dim3 blockDim;\n"
 		"#endif\n";
 
+	size_t prefixSize = src.size();
 	src += "\n\n" + code;
 
 	auto frontend = new CLFrontendAction(result);
@@ -278,10 +278,14 @@ int transformCudaClang(const std::string &code, std::string& result)
 		//return retval;
 	}
 
+	// Strip away the part that's only for validation
+	result = result.substr(prefixSize);
+	
 	// Check syntax of produced CL code
 	// @todo Add switch for additional syntax check!
 	retval = !runToolOnCodeWithArgs(new SyntaxOnlyAction, result,
-									{"-Wno-implicit-function-declaration", "-xcl", "-cl-std=CL2.0"}, "input.cl");
+					{"-Wno-implicit-function-declaration", "-xcl", "-cl-std=CL2.0"}, "input.cl");
+	
 	if(retval)
 		std::cerr << "OpenCL syntax check failed!" << std::endl;
 
