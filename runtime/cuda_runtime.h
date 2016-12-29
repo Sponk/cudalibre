@@ -106,10 +106,25 @@ cudaError_t cudaDeviceSynchronize();
 cudaError_t cudaThreadSynchronize();
 
 /// Only needed so the compiler does not fail
-extern int cudaConfigureCall(dim3 gridDim,
-							 dim3 blockDim,
-							 int sharedMem = 0,
-							 int stream = 0);
+extern int cudaConfigureCall(	dim3 gridDim,
+				dim3 blockDim,
+				int sharedMem = 0,
+				int stream = 0);
+
+// Ensure some macros are defined to empty
+#ifndef __device__
+#define __device__
+#endif
+
+#ifndef __host__
+#define __host__
+#endif
+
+#ifndef __global__
+#define __global__
+#endif
+
+
 
 /**
  * @}

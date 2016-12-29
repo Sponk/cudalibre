@@ -16,4 +16,7 @@ add_test(VectorManagedTest VectorManagedTest)
 cuda_add_executable(StructTest StructTest.cu)
 add_test(StructTest StructTest)
 
+cuda_add_executable(HostDeviceTest HostDeviceTest.cu)
+add_test(HostDeviceTest HostDeviceTest)
+
 cuda_add_executable(cuinfo cuinfo.cu)

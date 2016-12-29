@@ -172,9 +172,12 @@ public:
 																  bodyLocEnd))
 					 << std::endl;
 
-			rewriter.RemoveText(SourceRange(
-				bodyLoc.getLocWithOffset(offset),
-				bodyLocEnd));
+			if(!f->hasAttr<CUDAHostAttr>())
+			{
+				rewriter.RemoveText(SourceRange(
+					bodyLoc.getLocWithOffset(offset),
+					bodyLocEnd));
+			}
 		}
 
 		return true;
@@ -343,6 +346,7 @@ int main(int argc, char** argv)
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("--cuda-host-only"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__global__=__attribute__((global))"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__device__=__attribute__((device))"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__host__=__attribute__((host))"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDALIBRE_CLANG__"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-I/usr/include/cudalibre"));
 
