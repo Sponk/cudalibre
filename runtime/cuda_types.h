@@ -20,9 +20,16 @@ struct dim3
 
 // Some stuff used in the compiler to prevent errors while transforming code
 #if !defined(__CUDACC__) || defined(__CUDALIBRE_CLANG__)
-#define __DEFINE_VECSTRUCT2(type, name) struct name { type x; type y; };
-#define __DEFINE_VECSTRUCT3(type, name) struct name { type x; type y; type z;};
-#define __DEFINE_VECSTRUCT4(type, name) struct name { type x; type y; type z; type w;};
+#define __DEFINE_VECSTRUCT2(type, name) struct name { type x; type y; }; \
+						inline name make_##name(type x, type y) { name r; r.x = x; r.y = y; return r; }
+						
+#define __DEFINE_VECSTRUCT3(type, name) struct name { type x; type y; type z;}; \
+					inline name make_##name(type x, type y, type z) \
+							{ name r; r.x = x; r.y = y; r.z = z; return r; }
+					
+#define __DEFINE_VECSTRUCT4(type, name) struct name { type x; type y; type z; type w;}; \
+						inline name make_##name(type x, type y, type z, type w) \
+							{ name r; r.x = x; r.y = y; r.z = z; r.w = w; return r; }
 
 __DEFINE_VECSTRUCT2(float, float2)
 __DEFINE_VECSTRUCT3(float, float3)
