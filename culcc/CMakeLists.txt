@@ -10,6 +10,7 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 find_package(Clang REQUIRED clangTooling libClang)
+add_definitions(-DSTDINC="${CMAKE_SOURCE_DIR}/runtime")
 
 add_executable(culcc
 		ClangTool.cpp

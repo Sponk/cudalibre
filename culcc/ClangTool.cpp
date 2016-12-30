@@ -41,7 +41,7 @@ static llvm::cl::opt<bool>
 	GencodeSPIR("gencode-spir", llvm::cl::desc("Generate OpenCL SPIR binaries"), llvm::cl::Optional);
 	
 int compileSpir(const std::string& src, std::vector<unsigned char>& program);
-int transformCudaClang(const std::string &code, std::string& result);
+int transformCudaClang(const std::string &code, std::string& result, const std::string& stdinc);
 
 class CUDAASTVisitor : public RecursiveASTVisitor<CUDAASTVisitor>
 {
@@ -213,11 +213,13 @@ class CUDAFrontendAction : public ASTFrontendAction
 	llvm::raw_string_ostream result;
 	std::stringstream& cppResult;
 	std::stringstream& clResult;
+	std::string stdinc;
 
 public:
-	CUDAFrontendAction(std::stringstream& cppResult, std::stringstream& clResult) :
+	CUDAFrontendAction(std::stringstream& cppResult, std::stringstream& clResult, const std::string& stdinc) :
 		result(resultString),
 		cppResult(cppResult),
+		stdinc(stdinc),
 		clResult(clResult){}
 
 	void replacestr(std::string& str, const std::string& search, const std::string& replace)
@@ -265,12 +267,12 @@ public:
 		TheRewriter.getEditBuffer(SM.getMainFileID()).write(result);
 
 		result.flush();
-
+		
 		std::string clOutput;
-		if(transformCudaClang(clResult.str(), clOutput))
+		if(transformCudaClang(clResult.str(), clOutput, stdinc))
 		{
 			std::cerr << "Error while translating CUDA code!" << std::endl;
-			//exit(-1);
+			exit(-1);
 		}
 
 		clResult.str(clOutput);
@@ -326,13 +328,15 @@ class CUDAFrontendActionFactory : public FrontendActionFactory
 {
 	std::stringstream& cppResult;
 	std::stringstream& clResult;
+	const std::string& stdinc;
 public:
 
-	CUDAFrontendActionFactory(std::stringstream& cppResult, std::stringstream& clResult) :
+	CUDAFrontendActionFactory(std::stringstream& cppResult, std::stringstream& clResult, const std::string& stdinc) :
 		cppResult(cppResult),
-		clResult(clResult){}
+		clResult(clResult),
+		stdinc(stdinc){}
 
-	clang::FrontendAction *create() override { return new CUDAFrontendAction(cppResult, clResult); }
+	clang::FrontendAction *create() override { return new CUDAFrontendAction(cppResult, clResult, stdinc); }
 };
 
 int main(int argc, char** argv)
@@ -348,8 +352,12 @@ int main(int argc, char** argv)
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__device__=__attribute__((device))"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__host__=__attribute__((host))"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDALIBRE_CLANG__"));
-	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-I/usr/include/cudalibre"));
 
+#ifdef STDINC
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-I" STDINC));
+#endif
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-I/usr/include/cudalibre"));
+	
 	std::stringstream llvmVersion;
 	// Calcualate manually since LLVM_VERSION_STRING might include some "svn" postfix
 	/// @todo Only works on UNIX!
@@ -365,7 +373,7 @@ int main(int argc, char** argv)
 	std::stringstream cppResult;
 	std::stringstream clResult;
 
-	auto frontendFactory = std::unique_ptr<CUDAFrontendActionFactory>(new CUDAFrontendActionFactory(cppResult, clResult));
+	auto frontendFactory = std::unique_ptr<CUDAFrontendActionFactory>(new CUDAFrontendActionFactory(cppResult, clResult, llvmVersion.str()));
 	int result = tool.run(frontendFactory.get());
 
 	if(result != 0)

@@ -124,8 +124,6 @@ extern int cudaConfigureCall(	dim3 gridDim,
 #define __global__
 #endif
 
-
-
 /**
  * @}
  */

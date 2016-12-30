@@ -19,4 +19,7 @@ add_test(StructTest StructTest)
 cuda_add_executable(HostDeviceTest HostDeviceTest.cu)
 add_test(HostDeviceTest HostDeviceTest)
 
+cuda_add_executable(SIMDTest SIMDTest.cu)
+add_test(SIMDTest SIMDTest)
+
 cuda_add_executable(cuinfo cuinfo.cu)

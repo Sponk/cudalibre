@@ -233,7 +233,7 @@ public:
 	}
 
 	std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-												   StringRef file) override
+							StringRef file) override
 	{
 		TheRewriter.setSourceMgr(CI.getSourceManager(), CI.getLangOpts());
 		return llvm::make_unique<CLASTConsumer>(TheRewriter);
@@ -243,48 +243,39 @@ private:
 	Rewriter TheRewriter;
 };
 
-int transformCudaClang(const std::string &code, std::string& result)
+int transformCudaClang(const std::string &code, std::string& result, const std::string& stdinc)
 {
-	std::string src;
-	src = "// Ensures our compiler does not cough up at OpenCL builtins.\n"
-		"#ifdef __CLANG_CUDALIBRE__\n"
-		"extern int get_num_groups(int);\n"
-		"extern int get_local_size(int);\n"
-		"extern int get_group_id(int);\n"
-		"extern int get_local_id(int);\n"
-		"#define __kernel __attribute__((annotate(\"kernel\")))\n"
-		"#define __local __attribute__((annotate(\"local\")))\n"
-		"struct dim3{int x; int y; int z;};\n"
-		"dim3 threadIdx;\n"
-		"dim3 blockIdx;\n"
-		"dim3 blockDim;\n"
-		"#endif\n";
-
-	size_t prefixSize = src.size();
-	src += "\n\n" + code;
-
 	auto frontend = new CLFrontendAction(result);
 
 	// Transform to CL
 	int retval = 0;
-	retval = !runToolOnCodeWithArgs(frontend, src,
+	retval = !runToolOnCodeWithArgs(frontend, code,
 						  {"-fsyntax-only",
 						   "-D__CLANG_CUDALIBRE__",
+#ifdef STDINC
+						   "-I" STDINC,
+#endif
+						   "-I/usr/include/cudalibre",
+						   "-include", "cuda_types.h",
 						   "-xc++"});
 
 	if(retval)
 	{
 		std::cerr << "CUDA translation failed!" << std::endl;
-		//return retval;
+		return retval;
 	}
-
-	// Strip away the part that's only for validation
-	result = result.substr(prefixSize);
 	
 	// Check syntax of produced CL code
 	// @todo Add switch for additional syntax check!
 	retval = !runToolOnCodeWithArgs(new SyntaxOnlyAction, result,
-					{"-Wno-implicit-function-declaration", "-xcl", "-cl-std=CL2.0"}, "input.cl");
+					{"-Wno-implicit-function-declaration", 
+					 "-xcl", 
+					 "-cl-std=CL2.0",
+					 "-Dcl_clang_storage_class_specifiers",
+					 "-isystem", stdinc + "/libclc/generic/include", /// @attention Don't hardcode paths like this!
+					 "-isystem", "/usr/include/", 
+					 "-include", "clc/clc.h"
+					}, "input.cl");
 	
 	if(retval)
 		std::cerr << "OpenCL syntax check failed!" << std::endl;
