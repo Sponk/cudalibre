@@ -351,7 +351,10 @@ int main(int argc, char** argv)
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__global__=__attribute__((global))"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__device__=__attribute__((device))"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__host__=__attribute__((host))"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__constant__=__attribute__((constant))"));
+
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDALIBRE_CLANG__"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDALIBRE_OPENCL_EMULATION__"));
 
 #ifdef STDINC
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-I" STDINC));

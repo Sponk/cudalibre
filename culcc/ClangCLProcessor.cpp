@@ -252,11 +252,14 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 	retval = !runToolOnCodeWithArgs(frontend, code,
 						  {"-fsyntax-only",
 						   "-D__CLANG_CUDALIBRE__",
+						   "-D__CUDACC__",
+						   "-D__CUDALIBRE_OPENCL_EMULATION__",
 #ifdef STDINC
 						   "-I" STDINC,
 #endif
 						   "-I/usr/include/cudalibre",
 						   "-include", "cuda_types.h",
+						   "-include", "cuda_math.h",
 						   "-xc++"});
 
 	if(retval)
@@ -264,17 +267,22 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 		std::cerr << "CUDA translation failed!" << std::endl;
 		return retval;
 	}
-	
+	return retval;
 	// Check syntax of produced CL code
 	// @todo Add switch for additional syntax check!
 	retval = !runToolOnCodeWithArgs(new SyntaxOnlyAction, result,
 					{"-Wno-implicit-function-declaration", 
 					 "-xcl", 
-					 "-cl-std=CL2.0",
+					 "-cl-std=CL2.1",
 					 "-Dcl_clang_storage_class_specifiers",
 					 "-isystem", stdinc + "/libclc/generic/include", /// @attention Don't hardcode paths like this!
-					 "-isystem", "/usr/include/", 
-					 "-include", "clc/clc.h"
+					 "-isystem", "/usr/include/",
+					 "-I/usr/include/cudalibre",
+#ifdef STDINC
+					 "-I" STDINC,
+#endif
+					 "-include", "clc/clc.h",
+					 "-include", "cuda_vectors.h",
 					}, "input.cl");
 	
 	if(retval)
