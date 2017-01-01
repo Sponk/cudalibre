@@ -18,8 +18,6 @@ struct dim3
 	int z;
 };
 
-#include <cuda_vectors.h>
-
 #ifdef __CUDALIBRE_OPENCL_EMULATION__
 /// @attention Should not be defined on host code!
 extern int get_num_groups(int);
@@ -44,4 +42,6 @@ extern dim3 blockDim;
 #endif
 
 #endif
+
+#include <cuda_vectors.h>
 

@@ -117,45 +117,47 @@ public:
 				return true;
 			}
 
-			std::stringstream SSBefore;
 
-			// Construct C++ wrapper
-			std::stringstream cppArglist;
-			cppArglist << "#define call" << f->getNameAsString() << "(grid, block";
-
-			std::stringstream cppBody;
-			cppBody << "\tcu::callKernel(\"" << f->getNameAsString() << "\", ";
-			cppBody << "grid, block, cu::ArgumentList({";
-
-			for(int i = 0; i < f->getNumParams(); i++)
+			if(isGlobal)
 			{
-				auto param = f->getParamDecl(i);
+				// Construct C++ wrapper
+				std::stringstream cppArglist;
+				cppArglist << "#define call" << f->getNameAsString() << "(grid, block";
 
-				cppArglist << ", " << param->getNameAsString();
-				if(param->getType()->isRecordType())
+				std::stringstream cppBody;
+				cppBody << "\tcu::callKernel(\"" << f->getNameAsString() << "\", ";
+				cppBody << "grid, block, cu::ArgumentList({";
+
+				for(int i = 0; i < f->getNumParams(); i++)
 				{
-					for(FieldDecl* c : static_cast<RecordDecl*>(param->getType()->getAsTagDecl())->fields())
+					auto param = f->getParamDecl(i);
+
+					cppArglist << ", " << param->getNameAsString();
+					if(param->getType()->isRecordType())
 					{
-						// Pointer need to be moved out of the struct
-						if(c->getType()->isAnyPointerType())
+						for(FieldDecl* c : static_cast<RecordDecl*>(param->getType()->getAsTagDecl())->fields())
 						{
-							// Insert pointer
-							cppBody << "CU_KERNEL_ARG(" << param->getNameAsString() << "." << c->getNameAsString();
-							cppBody << "), "; // Unconditional ',' since there is always the struct after the pointer
+							// Pointer need to be moved out of the struct
+							if(c->getType()->isAnyPointerType())
+							{
+								// Insert pointer
+								cppBody << "CU_KERNEL_ARG(" << param->getNameAsString() << "." << c->getNameAsString();
+								cppBody << "), "; // Unconditional ',' since there is always the struct after the pointer
+							}
 						}
 					}
+
+					// Pointers are inserted before
+					cppBody << "CU_KERNEL_ARG(" << param->getNameAsString();
+					cppBody << ")" << ((i < f->getNumParams() - 1) ? ", " : "");
 				}
 
-				// Pointers are inserted before
-				cppBody << "CU_KERNEL_ARG(" << param->getNameAsString();
-				cppBody << ")" << ((i < f->getNumParams() - 1) ? ", " : "");
+				cppBody << "}));";
+
+				cppArglist << ")\\" << std::endl;
+				cppResult << cppArglist.str() << "{\\\n" << cppBody.str() << "\\\n}\n";
 			}
-
-			cppBody << "}));";
-
-			cppArglist << ")\\" << std::endl;
-			cppResult << cppArglist.str() << "{\\\n" << cppBody.str() << "\\\n}\n";
-
+			
 			int offset = -1;
 			auto bodyLoc = f->getLocation();
 			auto bodyLocEnd = f->getBody()->getLocEnd();
@@ -354,6 +356,7 @@ int main(int argc, char** argv)
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__constant__=__attribute__((constant))"));
 
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDALIBRE_CLANG__"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDACC__"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDALIBRE_OPENCL_EMULATION__"));
 
 #ifdef STDINC
@@ -371,6 +374,10 @@ int main(int argc, char** argv)
 
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-include"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("cuda_types.h"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-include"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("cuda_vectors.h"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-include"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("cudalibre_runtime.cuh"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-std=c++14"));
 
 	std::stringstream cppResult;

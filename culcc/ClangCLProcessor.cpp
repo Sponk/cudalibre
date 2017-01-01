@@ -17,6 +17,23 @@ using namespace clang::tooling;
 
 class CLASTVisitor : public RecursiveASTVisitor<CLASTVisitor>
 {
+	std::string getNewOperatorName(const std::string& str)
+	{
+		std::string result;
+		for(const char c : str)
+			switch(c)
+			{
+				case '+': result += "Plus"; break;
+				case '-': result += "Minus"; break;
+				case '*': result += "Star"; break;
+				case '/': result += "Slash"; break;
+				case '=': result += "Equals"; break;
+				case '<': result += "Smaller"; break;
+				case '>': result += "Greater"; break;
+			}
+		
+		return result;
+	}
 public:
 	CLASTVisitor(Rewriter &R)
 		: rewriter(R) {}
@@ -27,6 +44,24 @@ public:
 		// translate it!
 		switch(s->getStmtClass())
 		{
+			case clang::Stmt::CXXOperatorCallExprClass:
+			{
+				clang::CXXOperatorCallExpr* call = static_cast<clang::CXXOperatorCallExpr*>(s);
+				//SourceLocation start = call->get,end;
+				
+				auto decl = call->getCalleeDecl();
+				if(!decl->isImplicit() && decl->getAsFunction()->isOverloadedOperator())
+				{
+					rewriter.InsertTextBefore(call->getLocStart(), 
+								  getNewOperatorName(decl->getAsFunction()->getNameAsString()) + "(");
+					
+					rewriter.InsertTextAfter(call->getLocEnd().getLocWithOffset(1), ")");
+					rewriter.ReplaceText(call->getCallee()->getSourceRange(), ",");
+				}
+				
+			}
+			break;
+
 			case clang::Stmt::MemberExprClass:
 			{
 				clang::MemberExpr* member = static_cast<clang::MemberExpr*>(s);
@@ -151,6 +186,12 @@ public:
 
 	bool VisitFunctionDecl(FunctionDecl *f)
 	{
+		// Fix operator overloading
+		if(f->isOverloadedOperator())
+		{
+			rewriter.ReplaceText(f->getNameInfo().getSourceRange(), getNewOperatorName(f->getNameAsString()));
+		}
+		
 		if (f->hasBody())
 		{
 			// Add __kernel if needed
@@ -246,13 +287,13 @@ private:
 int transformCudaClang(const std::string &code, std::string& result, const std::string& stdinc)
 {
 	auto frontend = new CLFrontendAction(result);
-
 	// Transform to CL
 	int retval = 0;
 	retval = !runToolOnCodeWithArgs(frontend, code,
 						  {"-fsyntax-only",
 						   "-D__CLANG_CUDALIBRE__",
 						   "-D__CUDACC__",
+						   "-D__CUDA_ARCH__", /// Since we are compiling GPU code
 						   "-D__CUDALIBRE_OPENCL_EMULATION__",
 #ifdef STDINC
 						   "-I" STDINC,
@@ -267,6 +308,7 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 		std::cerr << "CUDA translation failed!" << std::endl;
 		return retval;
 	}
+	
 	return retval;
 	// Check syntax of produced CL code
 	// @todo Add switch for additional syntax check!
