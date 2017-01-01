@@ -174,6 +174,13 @@ public:
 																  bodyLocEnd))
 					 << std::endl;
 
+			if(f->isInlineSpecified())
+			{
+				while (rewriter.getRewrittenText(SourceRange(bodyLoc.getLocWithOffset(offset), bodyLocEnd))
+							.find("inline") != 0)
+				offset--;
+			}
+				
 			if(!f->hasAttr<CUDAHostAttr>())
 			{
 				rewriter.RemoveText(SourceRange(
