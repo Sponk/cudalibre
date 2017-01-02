@@ -25,4 +25,7 @@ add_test(SIMDTest SIMDTest)
 cuda_add_executable(OperatorOverloadingTest OperatorOverloadingTest.cu)
 add_test(OperatorOverloadingTest OperatorOverloadingTest)
 
+cuda_add_executable(FunctionOverloadingTest FunctionOverloadingTest.cu)
+add_test(FunctionOverloadingTest FunctionOverloadingTest)
+
 cuda_add_executable(cuinfo cuinfo.cu)

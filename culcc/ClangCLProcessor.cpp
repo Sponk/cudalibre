@@ -34,6 +34,24 @@ class CLASTVisitor : public RecursiveASTVisitor<CLASTVisitor>
 		
 		return result;
 	}
+	
+	std::string getFullyMangledName(FunctionDecl* d)
+	{
+		std::string result;
+		if(d->isOverloadedOperator())
+			result = getNewOperatorName(d->getNameAsString());
+		else
+			result = d->getNameAsString();
+		
+		for(size_t i = 0; i < d->getNumParams(); i++)
+			result += "_" + d->getParamDecl(i)->getType().getAsString();
+		
+		std::replace(result.begin(), result.end(), ' ', '_');
+		std::replace(result.begin(), result.end(), '*', 'p');
+
+		return result;
+	}
+	
 public:
 	CLASTVisitor(Rewriter &R)
 		: rewriter(R) {}
@@ -44,6 +62,22 @@ public:
 		// translate it!
 		switch(s->getStmtClass())
 		{
+			case clang::Stmt::CallExprClass:
+			{
+				clang::CallExpr* call = static_cast<clang::CallExpr*>(s);
+				
+				auto decl = call->getCalleeDecl();//->getAsFunction();
+				if(decl && !decl->isImplicit())
+				{
+					auto declFunc = decl->getAsFunction();
+					rewriter.ReplaceText(
+						SourceRange(	call->getLocStart(), 
+								call->getLocStart().getLocWithOffset(declFunc->getNameAsString().size() - 1)),
+								getFullyMangledName(declFunc));
+				}
+			}
+			break;
+			
 			case clang::Stmt::CXXOperatorCallExprClass:
 			{
 				clang::CXXOperatorCallExpr* call = static_cast<clang::CXXOperatorCallExpr*>(s);
@@ -53,7 +87,7 @@ public:
 				if(!decl->isImplicit() && decl->getAsFunction()->isOverloadedOperator())
 				{
 					rewriter.InsertTextBefore(call->getLocStart(), 
-								  getNewOperatorName(decl->getAsFunction()->getNameAsString()) + "(");
+								  getFullyMangledName(decl->getAsFunction()) + "(");
 					
 					rewriter.InsertTextAfter(call->getLocEnd().getLocWithOffset(1), ")");
 					rewriter.ReplaceText(call->getCallee()->getSourceRange(), ",");
@@ -189,7 +223,7 @@ public:
 		// Fix operator overloading
 		if(f->isOverloadedOperator())
 		{
-			rewriter.ReplaceText(f->getNameInfo().getSourceRange(), getNewOperatorName(f->getNameAsString()));
+			rewriter.ReplaceText(f->getNameInfo().getSourceRange(), getFullyMangledName(f));
 		}
 		
 		if (f->hasBody())
@@ -230,6 +264,10 @@ public:
 						}
 					}
 				}
+			}
+			else // __device__ function
+			{
+				rewriter.ReplaceText(f->getNameInfo().getSourceRange(), getFullyMangledName(f));
 			}
 		}
 
@@ -309,13 +347,12 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 		return retval;
 	}
 	
-	return retval;
 	// Check syntax of produced CL code
 	// @todo Add switch for additional syntax check!
 	retval = !runToolOnCodeWithArgs(new SyntaxOnlyAction, result,
 					{"-Wno-implicit-function-declaration", 
 					 "-xcl", 
-					 "-cl-std=CL2.1",
+					 "-cl-std=CL2.0",
 					 "-Dcl_clang_storage_class_specifiers",
 					 "-isystem", stdinc + "/libclc/generic/include", /// @attention Don't hardcode paths like this!
 					 "-isystem", "/usr/include/",
@@ -324,7 +361,7 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 					 "-I" STDINC,
 #endif
 					 "-include", "clc/clc.h",
-					 "-include", "cuda_vectors.h",
+					 //"-include", "cuda_vectors.h",
 					}, "input.cl");
 	
 	if(retval)
