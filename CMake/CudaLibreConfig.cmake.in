@@ -34,8 +34,13 @@ macro(cuda_add_executable name)
             math(EXPR _CU_POS "(${_CU_LEN})-(${_CU_POS})")
             if(${_CU_POS} STREQUAL 3)
 			    string(REPLACE "/" "_" _ARGNAME ${arg})
-                add_custom_target(${_ARGNAME}_culcc ALL COMMAND ${CULCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp --)
-                execute_process(COMMAND ${CULCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp --)
+
+			    ## Get full source directory so we can search includes for '#include "some_local_include.h"'
+			    get_filename_component(_INCPATH ${CMAKE_CURRENT_SOURCE_DIR}/${arg} DIRECTORY)
+                add_custom_target(${_ARGNAME}_culcc ALL COMMAND ${CULCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${arg}
+                					-o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp -- -I${_INCPATH})
+                execute_process(COMMAND ${CULCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${arg}
+                					-o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp -- -I${_INCPATH})
 
                 list(APPEND _SOURCELIST ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
                 list(APPEND _CUDA_DEPS ${_ARGNAME}_culcc)
@@ -50,7 +55,7 @@ macro(cuda_add_executable name)
     endif()
 
     target_link_libraries(${name} ${CudaLibre_LIBRARIES} ${OpenCL_LIBRARIES})
-    target_include_directories(${name} PUBLIC ${CudaLibre_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
+    target_include_directories(${name} PUBLIC ${CudaLibre_INCLUDE_DIRS} ${_INCPATH})
 endmacro()
 
 macro(cuda_add_library name)
@@ -67,8 +72,15 @@ macro(cuda_add_library name)
             math(EXPR _CU_POS "(${_CU_LEN})-(${_CU_POS})")
             if(${_CU_POS} STREQUAL 3)
 			    string(REPLACE "/" "_" _ARGNAME ${arg})
-                add_custom_target(${_ARGNAME}_culcc ALL COMMAND ${CULCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp --)
-                execute_process(COMMAND ${CULCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp --)
+
+                file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp "") ## Ensure the file path exists
+
+                ## Get full source directory so we can search includes for '#include "some_local_include.h"'
+                get_filename_component(_INCPATH ${CMAKE_CURRENT_SOURCE_DIR}/${arg} DIRECTORY)
+                add_custom_target(${_ARGNAME}_culcc ALL COMMAND ${CULCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${arg}
+                                				-o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp -- -I${_INCPATH})
+                execute_process(COMMAND ${CULCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${arg}
+                             					-o ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp -- -I${_INCPATH})
 
                 list(APPEND _SOURCELIST ${CMAKE_CURRENT_BINARY_DIR}/${arg}.cpp)
                 list(APPEND _CUDA_DEPS ${_ARGNAME}_culcc)
@@ -83,6 +95,6 @@ macro(cuda_add_library name)
     endif()
 
     target_link_libraries(${name} ${CudaLibre_LIBRARIES} ${OpenCL_LIBRARIES})
-    target_include_directories(${name} PUBLIC ${CudaLibre_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
+    target_include_directories(${name} PUBLIC ${CudaLibre_INCLUDE_DIRS} ${_INCPATH})
 endmacro()
 
