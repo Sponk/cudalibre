@@ -73,6 +73,15 @@ public:
 	CLASTVisitor(Rewriter &R)
 		: rewriter(R) {}
 
+	bool VisitCXXFunctionalCastExpr(CXXFunctionalCastExpr* c)
+	{
+		/// @note Translates like this: int(num) -> ((int)(num))
+		rewriter.InsertTextBefore(c->getLocStart(), "((");
+		rewriter.InsertTextBefore(c->getLParenLoc(), ")");
+		rewriter.InsertTextBefore(c->getLocEnd(), ")");
+		return true;
+	}
+
 	bool VisitStmt(Stmt* s)
 	{
 		// If access belongs to a structure with pointer,
@@ -82,8 +91,7 @@ public:
 			case clang::Stmt::CXXOperatorCallExprClass:
 			{
 				clang::CXXOperatorCallExpr* call = static_cast<clang::CXXOperatorCallExpr*>(s);
-				//SourceLocation start = call->get,end;
-				
+
 				auto decl = call->getCalleeDecl();
 				if(!decl->isImplicit() && decl->getAsFunction()->isOverloadedOperator())
 				{
@@ -370,7 +378,7 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 	}
 
 	//std::cout << result << std::endl;
-
+return retval;
 	// Check syntax of produced CL code
 	// @todo Add switch for additional syntax check!
 	retval = !runToolOnCodeWithArgs(new SyntaxOnlyAction, result,
