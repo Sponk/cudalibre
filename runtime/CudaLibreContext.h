@@ -5,6 +5,8 @@
 #include <vector>
 #include <cassert>
 #include <sstream>
+#include <queue>
+#include <iostream>
 
 namespace cu
 {
@@ -21,9 +23,14 @@ class CudaLibreContext
 	cl::Context clcontext;
 
 	std::vector<std::pair<const unsigned char*, size_t>> binaries;
-	
+	std::vector<std::pair<std::string, int>> sourceList;
+
 public:
 	CudaLibreContext();
+	~CudaLibreContext()
+	{
+		clear();
+	}
 
 	/**
 	 * @brief Sets the current device.
@@ -62,9 +69,32 @@ public:
 	 * @brief Adds more sources to the full kernel code.
 	 * @param src The source string.
 	 */
-	void addSources(const char* src)
+	void addSources(const char* src, int priority)
 	{
-		sources << src;
+		sources.str("");
+
+		if(sourceList.size() == 0 || sourceList.back().second <= priority)
+		{
+			for(auto& p : sourceList)
+				sources << p.first;
+
+			sourceList.push_back(std::pair<std::string, int>(src, priority));
+			sources << src;
+		}
+		else
+			for(int i = 0; i < sourceList.size(); i++)
+			{
+				if(sourceList[i].second > priority)
+				{
+					sourceList.insert(sourceList.begin() + i, std::pair<std::string, int>(src, priority));
+					sources << src;
+				}
+				else
+				{
+					sources << sourceList[i].first;
+				}
+			}
+
 		for(auto& d : cudaDevices)
 			d.setSources(sources.str().c_str());
 	}
@@ -81,6 +111,7 @@ public:
 	 */
 	void clearSources()
 	{
+		sourceList.clear();
 		sources.str("");
 		for(auto& d : cudaDevices)
 			d.setSources("");
@@ -88,6 +119,7 @@ public:
 
 	void clear()
 	{
+		clearSources();
 		for(auto& d : cudaDevices)
 			d.clear();
 	}

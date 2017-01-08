@@ -10,14 +10,14 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 find_package(Clang REQUIRED clangTooling libClang)
-add_definitions(-DSTDINC="${CMAKE_SOURCE_DIR}/runtime")
+add_definitions(-DRTINC="-I${CMAKE_SOURCE_DIR}/runtime" -DSTDINC="-I${CMAKE_SOURCE_DIR}/cudastd")
 
 add_executable(culcc
 		ClangTool.cpp
 		ClangCLProcessor.cpp
 		Spir.cpp)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CLANG_INCLUDE_DIRS} ${LLVM_INCLUDE_DIR} ../runtime)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CLANG_INCLUDE_DIRS} ${LLVM_INCLUDE_DIR} ${CudaLibre_INCLUDE_DIRS})
 target_link_libraries(culcc
   clangFrontend
   clangSerialization

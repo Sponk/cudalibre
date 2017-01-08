@@ -1,5 +1,7 @@
 #pragma once
 
+/// Needs to be in here and in math.cuh since cudastd depends on this lib
+/// so depending back is not possible. @fixme Maybe move this code to third, header only lib?
 struct dim3
 {
 	dim3(int x, int y, int z)
@@ -18,7 +20,8 @@ struct dim3
 	int z;
 };
 
-#ifdef __CUDALIBRE_OPENCL_EMULATION__
+#ifdef __CUDALIBRE_CLANG__
+
 /// @attention Should not be defined on host code!
 extern int get_num_groups(int);
 extern int get_local_size(int);
@@ -42,6 +45,3 @@ extern dim3 blockDim;
 #endif
 
 #endif
-
-#include <cuda_vectors.h>
-

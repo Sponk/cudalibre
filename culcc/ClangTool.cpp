@@ -23,6 +23,8 @@
 
 #define VERSION_STRING "0.1"
 
+#define PRINT_FILE(f) { std::cout << rewriter.getSourceMgr().getFilename((f)->getLocation()).str() << std::endl; }
+
 using namespace clang;
 using namespace clang::driver;
 using namespace clang::tooling;
@@ -93,10 +95,11 @@ public:
 
 	bool VisitFunctionDecl(FunctionDecl *f)
 	{
-		bool isGlobal = f->hasAttr<CUDAGlobalAttr>();
-		bool isDevice = f->hasAttr<CUDADeviceAttr>();
+		const bool isGlobal = f->hasAttr<CUDAGlobalAttr>();
+		const bool isDevice = f->hasAttr<CUDADeviceAttr>();
+		const bool isBlacklisted = isInBlacklist(f);
 
-		if (!isInBlacklist(f) && (isGlobal || isDevice))
+		if (!isBlacklisted && (isGlobal || isDevice))
 		{
 			// Definition only needs to be removed
 			if(!f->hasBody())
@@ -106,9 +109,10 @@ public:
 				SourceLocation end = f->getLocEnd().getLocWithOffset(1);
 				std::string specifier = (isGlobal) ? "__global__" : "__device__";
 
-				while (rewriter.getRewrittenText(SourceRange(location.getLocWithOffset(offset), end))
-					.find(specifier) != 0)
+				while(rewriter.getRewrittenText(SourceRange(location.getLocWithOffset(offset), end)).find(specifier) != 0)
+				{
 					offset--;
+				}
 
 				rewriter.RemoveText(SourceRange(
 					location.getLocWithOffset(offset),
@@ -288,12 +292,15 @@ public:
 
 		// Write some comment to make understanding the generated code easier
 		cppResult << "#include <cudalibre.h>" << std::endl
+			  << "#ifndef __CUDA_LIBRE_PRIORITY__" << std::endl
+			  << "#define __CUDA_LIBRE_PRIORITY__ 10" << std::endl
+			  << "#endif" << std::endl
 			  << "// Save the CUDA -> OpenCL translated code into a string" << std::endl << std::endl
 			  << "// Use an anonymous namespace to provide an constructor function that sets up the runtime environment." << std::endl
 			  << "namespace { " << std::endl
 			  << "class LibreCudaInitializer { " << std::endl;
 		
-		if(GencodeSPIR.getValue())
+		if(GencodeSPIR.getValue() && false)
 		{
 			cu::SPIRHeader header;
 			std::vector<unsigned char> program;
@@ -308,7 +315,7 @@ public:
 		else
 		{
 			cppResult << "static constexpr const char* cudalibre_clcode = " << stringify(clOutput) << ";" << std::endl
-				  << "public: LibreCudaInitializer() { cu::initCudaLibre(cudalibre_clcode); }" << std::endl;
+				  << "public: LibreCudaInitializer() { cu::initCudaLibre(cudalibre_clcode, __CUDA_LIBRE_PRIORITY__); }" << std::endl;
 		}
 		
 		cppResult << "} init; }" << std::endl << std::endl;
@@ -364,11 +371,15 @@ int main(int argc, char** argv)
 
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDALIBRE_CLANG__"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDACC__"));
-	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDALIBRE_OPENCL_EMULATION__"));
 
 #ifdef STDINC
-	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-I" STDINC));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster(STDINC));
 #endif
+
+#ifdef RTINC
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster(RTINC));
+#endif
+
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-I/usr/include/cudalibre"));
 	
 	std::stringstream llvmVersion;
@@ -380,11 +391,7 @@ int main(int argc, char** argv)
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster(llvmVersion.str().c_str()));
 
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-include"));
-	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("cuda_types.h"));
-	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-include"));
-	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("cuda_vectors.h"));
-	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-include"));
-	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("cudalibre_runtime.cuh"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("math.cuh"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-std=c++14"));
 
 	std::stringstream cppResult;

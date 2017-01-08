@@ -3,26 +3,10 @@
 #include <cmath>
 #include "common.h"
 
-// Try overloading a builtin
-__device__ int2 abs(int2 i)
-{
-	return make_int2(abs(i.x), abs(i.y));
-}
-
-__device__ int func(int i)
-{
-	return i + 1;
-}
-
-__device__ float func(float i)
-{
-	return i + 1.0f;
-}
-
-__global__ void add(float* a, float* b, float* c)
+__global__ void addAbs(float* a, float* b, float* c)
 {
 	unsigned int id = threadIdx.x;
-	c[id] = a[id] + b[id];
+	c[id] = fabs(a[id] + b[id]);
 }
 
 #define TESTSIZE 32
@@ -47,7 +31,7 @@ int main(int argc, char* argv[])
 	CUDA_CHECK(cudaMemcpy(db, b, sizeof(float) * TESTSIZE, cudaMemcpyHostToDevice));
 
 	// Test addition kernel
-	add<<<1, 32>>>(da, db, dc);
+	addAbs<<<1, 32>>>(da, db, dc);
 	CUDA_CHECK_LAST;
 
 	CUDA_CHECK(cudaMemcpy2D(dc, pitch, c, sizeof(float), sizeof(float), TESTSIZE, cudaMemcpyDeviceToHost));
@@ -55,7 +39,7 @@ int main(int argc, char* argv[])
 	// Check expected result
 	int retval = 0;
 	for(int i = 0; i < TESTSIZE; i++)
-		if(fabs(c[i] - (a[i] + b[i])) > 0.0001)
+		if(fabs(c[i] - fabs(a[i] + b[i])) > 0.0001)
 		{
 			std::cerr << "Error: Result is not as expected!" << std::endl;
 			retval = 1;

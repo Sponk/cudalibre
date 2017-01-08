@@ -60,7 +60,7 @@ struct SPIRHeader
 	/// A Lot of data here!
 };
 
-void initCudaLibre(const char* sources);
+void initCudaLibre(const char* sources, int priority = 10);
 void initCudaLibreSPIR(const unsigned char* sources);
 void resetCudaLibre();
 std::shared_ptr<cu::CudaLibreContext> getCudaLibreContext();

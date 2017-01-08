@@ -49,8 +49,8 @@ set(CMAKE_MODULE_PATH
 set(CMAKE_CXX_STANDARD 11)
 
 set(CULCC_EXECUTABLE ${CMAKE_BINARY_DIR}/culcc/culcc)
-set(LibreCuda_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/runtime)
-set(LibreCuda_LIBRARIES clruntime)
+set(CudaLibre_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/runtime ${CMAKE_SOURCE_DIR}/cudastd)
+set(CudaLibre_LIBRARIES clruntime)
 set(GTEST_LIBRARIES gtest)
 set(GTEST_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/gtest/googletest/src)
 
@@ -61,6 +61,7 @@ add_subdirectory(gtest)
 add_subdirectory(culcc)
 add_subdirectory(culccd)
 add_subdirectory(runtime)
+add_subdirectory(cudastd)
 add_subdirectory(examples)
 add_subdirectory(docs)
 

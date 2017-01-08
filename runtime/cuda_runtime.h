@@ -111,6 +111,10 @@ extern int cudaConfigureCall(	dim3 gridDim,
 				int sharedMem = 0,
 				int stream = 0);
 
+/// Ensure all math capabilities can be used on the host
+/// Note: math.cuh is explicitely written for the purpose of being valid on the host and the device!
+#include <math.cuh>
+
 // Ensure some macros are defined to empty
 #ifndef __device__
 #define __device__

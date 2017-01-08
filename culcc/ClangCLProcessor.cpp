@@ -34,9 +34,25 @@ class CLASTVisitor : public RecursiveASTVisitor<CLASTVisitor>
 		
 		return result;
 	}
-	
+
+	/**
+	 * @brief Returns an uniquely mangled name that respects parameter types for overloading.
+	 *
+	 * It will also handle the usage of builtin functions and translate them to their
+	 * respective OpenCL or libcudastd call.
+	 *
+	 * @param d The declaration to translate.
+	 * @return A new name.
+	 */
 	std::string getFullyMangledName(FunctionDecl* d)
 	{
+		// If we found a builtin
+		if(d->hasAttr<AnnotateAttr>()
+			&& d->getAttr<AnnotateAttr>()->getAnnotation().str() == "builtin")
+		{
+			return d->getNameAsString();
+		}
+
 		std::string result;
 		if(d->isOverloadedOperator())
 			result = getNewOperatorName(d->getNameAsString());
@@ -48,6 +64,7 @@ class CLASTVisitor : public RecursiveASTVisitor<CLASTVisitor>
 		
 		std::replace(result.begin(), result.end(), ' ', '_');
 		std::replace(result.begin(), result.end(), '*', 'p');
+		std::replace(result.begin(), result.end(), '&', 'r');
 
 		return result;
 	}
@@ -62,22 +79,6 @@ public:
 		// translate it!
 		switch(s->getStmtClass())
 		{
-			case clang::Stmt::CallExprClass:
-			{
-				clang::CallExpr* call = static_cast<clang::CallExpr*>(s);
-				
-				auto decl = call->getCalleeDecl();//->getAsFunction();
-				if(decl && !decl->isImplicit())
-				{
-					auto declFunc = decl->getAsFunction();
-					rewriter.ReplaceText(
-						SourceRange(	call->getLocStart(), 
-								call->getLocStart().getLocWithOffset(declFunc->getNameAsString().size() - 1)),
-								getFullyMangledName(declFunc));
-				}
-			}
-			break;
-			
 			case clang::Stmt::CXXOperatorCallExprClass:
 			{
 				clang::CXXOperatorCallExpr* call = static_cast<clang::CXXOperatorCallExpr*>(s);
@@ -86,13 +87,36 @@ public:
 				auto decl = call->getCalleeDecl();
 				if(!decl->isImplicit() && decl->getAsFunction()->isOverloadedOperator())
 				{
-					rewriter.InsertTextBefore(call->getLocStart(), 
+					rewriter.InsertTextBefore(call->getLocStart(),
 								  getFullyMangledName(decl->getAsFunction()) + "(");
 					
 					rewriter.InsertTextAfter(call->getLocEnd().getLocWithOffset(1), ")");
 					rewriter.ReplaceText(call->getCallee()->getSourceRange(), ",");
 				}
 				
+			}
+			break;
+
+			case clang::Stmt::CallExprClass:
+			{
+				clang::CallExpr* call = static_cast<clang::CallExpr*>(s);
+
+
+				auto decl = call->getCalleeDecl();//->getAsFunction();
+				if(decl && !decl->isImplicit())
+				{
+					auto declFunc = decl->getAsFunction();
+					auto range = SourceRange(call->getLocStart(),
+											 call->getLocStart().getLocWithOffset(declFunc->getNameAsString().size() - 1));
+
+					if(range.isInvalid())
+					{
+						llvm::report_fatal_error("Range is invalid!");
+					}
+
+					if(rewriter.getRangeSize(range) < 40)
+						rewriter.ReplaceText(range, getFullyMangledName(declFunc));
+				}
 			}
 			break;
 
@@ -329,16 +353,14 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 	int retval = 0;
 	retval = !runToolOnCodeWithArgs(frontend, code,
 						  {"-fsyntax-only",
-						   "-D__CLANG_CUDALIBRE__",
 						   "-D__CUDACC__",
 						   "-D__CUDA_ARCH__", /// Since we are compiling GPU code
-						   "-D__CUDALIBRE_OPENCL_EMULATION__",
+						   "-D__CUDA_LIBRE_TRANSLATION_PHASE__",
 #ifdef STDINC
-						   "-I" STDINC,
+						   STDINC,
 #endif
 						   "-I/usr/include/cudalibre",
-						   "-include", "cuda_types.h",
-						   "-include", "cuda_math.h",
+						   "-include", "math.cuh",
 						   "-xc++"});
 
 	if(retval)
@@ -346,7 +368,9 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 		std::cerr << "CUDA translation failed!" << std::endl;
 		return retval;
 	}
-	
+
+	//std::cout << result << std::endl;
+
 	// Check syntax of produced CL code
 	// @todo Add switch for additional syntax check!
 	retval = !runToolOnCodeWithArgs(new SyntaxOnlyAction, result,
@@ -358,7 +382,11 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 					 "-isystem", "/usr/include/",
 					 "-I/usr/include/cudalibre",
 #ifdef STDINC
-					 "-I" STDINC,
+					 STDINC,
+#endif
+
+#ifdef RTINC
+					 RTINC,
 #endif
 					 "-include", "clc/clc.h",
 					 //"-include", "cuda_vectors.h",

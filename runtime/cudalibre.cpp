@@ -37,10 +37,10 @@ static cudaError_t s_lastError = cudaSuccess;
 namespace cu
 {
 
-void initCudaLibre(const char* sources)
+void initCudaLibre(const char* sources, int priority)
 {
 	auto context = getCudaLibreContext();
-	context->addSources(sources);
+	context->addSources(sources, priority);
 }
 
 void initCudaLibreSPIR(const unsigned char* sources)
