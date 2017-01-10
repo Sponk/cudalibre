@@ -377,8 +377,6 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 		return retval;
 	}
 
-	//std::cout << result << std::endl;
-return retval;
 	// Check syntax of produced CL code
 	// @todo Add switch for additional syntax check!
 	retval = !runToolOnCodeWithArgs(new SyntaxOnlyAction, result,

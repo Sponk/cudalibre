@@ -131,5 +131,12 @@ std::unordered_map<std::string, bool> headerBlacklist
 		 {"stl_algo.h", true},
 		 {"allocated_ptr.h", true},
 		 {"locale_facets_nonio.tcc", true},
-		 {"types.h", true}
+		 {"types.h", true},
+		 {"string", true},
+		 {"basic_file.h", true},
+		 {"fstream", true},
+		 {"fstream.tcc", true},
+		 {"stl_vector.h", true},
+		 {"stl_bvector.h", true},
+		 {"c++io.h", true}
 	 });

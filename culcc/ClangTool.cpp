@@ -59,7 +59,23 @@ public:
 		if(idx != std::string::npos)
 			fullname = fullname.substr(idx + 1);
 
-		return fullname.empty() || headerBlacklist[fullname];
+		// Ensure only classes that do not depend on STL or similar are included.
+		const bool isInList = fullname.empty() || headerBlacklist[fullname];
+		if(isa<CXXRecordDecl>(d) && !isInList)
+		{
+			CXXRecordDecl* rd = static_cast<CXXRecordDecl*>(d);
+			if(rd->getDefinition() == nullptr)
+				return isInList;
+
+			for(auto& b : rd->bases())
+			{
+				if(b.getType()->getAsTagDecl() != nullptr && !b.getTypeSourceInfo()->getTypeLoc().isNull())
+					if(isInBlacklist(b.getType()->getAsTagDecl()))
+						return true;
+			}
+		}
+
+		return isInList;
 	}
 
 	bool VisitTypedefDecl(TypedefDecl* t)
@@ -70,9 +86,10 @@ public:
 		}
 	}
 
-	bool VisitRecordDecl(RecordDecl* r)
+	bool VisitCXXRecordDecl(CXXRecordDecl* r)
 	{
-		if(!r->getNameAsString().empty() && !isInBlacklist(r))
+		if(!r->getNameAsString().empty()
+			&& !isInBlacklist(r))
 		{
 			clResult << rewriter.getRewrittenText(r->getSourceRange()) << ";" << std::endl;
 		}
