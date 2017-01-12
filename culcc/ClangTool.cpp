@@ -331,7 +331,11 @@ public:
 		}
 		else
 		{
-			cppResult << "static constexpr const char* cudalibre_clcode = " << stringify(clOutput) << ";" << std::endl
+			cppResult << "static constexpr const char* cudalibre_clcode = " 
+				  << "\"/// OPENCL_CODE_START\\n\"" << std::endl 
+				  << stringify(clOutput)
+ 				  << "\"/// OPENCL_CODE_END\\n\"" << std::endl 
+				  << ";" << std::endl
 				  << "public: LibreCudaInitializer() { cu::initCudaLibre(cudalibre_clcode, __CUDA_LIBRE_PRIORITY__); }" << std::endl;
 		}
 		

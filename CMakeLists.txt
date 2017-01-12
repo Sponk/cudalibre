@@ -62,6 +62,7 @@ add_subdirectory(culcc)
 add_subdirectory(culccd)
 add_subdirectory(runtime)
 add_subdirectory(cudastd)
+add_subdirectory(tools)
 add_subdirectory(examples)
 add_subdirectory(docs)
 
