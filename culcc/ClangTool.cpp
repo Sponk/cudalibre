@@ -85,7 +85,7 @@ public:
 			clResult << rewriter.getRewrittenText(t->getSourceRange()) << ";" << std::endl;
 		}
 	}
-
+	
 	bool VisitCXXRecordDecl(CXXRecordDecl* r)
 	{
 		if(!r->getNameAsString().empty()
@@ -119,7 +119,7 @@ public:
 		if (!isBlacklisted && (isGlobal || isDevice))
 		{
 			// Definition only needs to be removed
-			if(!f->hasBody())
+			if(!f->hasBody() || f->isCXXClassMember())
 			{
 				int offset = -1;
 				SourceLocation location = f->getLocation();

@@ -28,6 +28,9 @@ add_test(OperatorOverloadingTest OperatorOverloadingTest)
 cuda_add_executable(FunctionOverloadingTest FunctionOverloadingTest.cu)
 add_test(FunctionOverloadingTest FunctionOverloadingTest)
 
+cuda_add_executable(StlInheritanceTest StlInheritanceTest.cu)
+add_test(StlInheritanceTest StlInheritanceTest)
+
 cuda_add_executable(LibstdTest LibstdTest.cu)
 add_test(LibstdTest LibstdTest)
 target_link_libraries(LibstdTest cudastd)

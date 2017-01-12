@@ -82,8 +82,32 @@ public:
 		return true;
 	}
 
+	CXXThisExpr* containsThisExpr(Stmt* member)
+	{
+		if(isa<CXXThisExpr>(member))
+		{
+			CXXThisExpr* expr = static_cast<CXXThisExpr*>(member);
+			return expr;
+		}
+		for(auto c : member->children())
+		{
+			CXXThisExpr* expr;
+			if((expr = containsThisExpr(c)))
+				return expr;
+		}	
+		return nullptr;
+	}
+	
 	bool VisitStmt(Stmt* s)
 	{
+		/// @todo Needs to be cleaned up after each file!
+		/// @fixme UGLY!
+		static std::unordered_map<Stmt*, bool> handledStatements;
+		if(handledStatements[s])
+			return true;
+		
+		handledStatements[s] = true;
+		
 		// If access belongs to a structure with pointer,
 		// translate it!
 		switch(s->getStmtClass())
@@ -115,7 +139,7 @@ public:
 				{
 					auto declFunc = decl->getAsFunction();
 					auto range = SourceRange(call->getLocStart(),
-											 call->getLocStart().getLocWithOffset(declFunc->getNameAsString().size() - 1));
+								call->getLocStart().getLocWithOffset(declFunc->getNameAsString().size() - 1));
 
 					if(range.isInvalid())
 					{
@@ -131,6 +155,19 @@ public:
 			case clang::Stmt::MemberExprClass:
 			{
 				clang::MemberExpr* member = static_cast<clang::MemberExpr*>(s);
+				
+				{
+					auto base = member->getBase()->getType();
+					
+					CXXThisExpr* t;
+					if(member->getMemberDecl()->isDefinedOutsideFunctionOrMethod() 
+						&& (t = containsThisExpr(member->getBase())) 
+						&& (t->getType() == base || !base->isStructureOrClassType()))
+					{
+						rewriter.InsertTextBefore(member->getLocStart(), "self->");
+					}
+				}
+				
 				if (member->getType()->isAnyPointerType())
 				{
 					rewriter.ReplaceText(s->getSourceRange(),
@@ -235,7 +272,73 @@ public:
 		return true;
 	}
 
-	bool VisitRecordDecl(RecordDecl* r)
+	SourceLocation findNextChar(const SourceLocation& start, const char c, int offset = 1)
+	{
+		auto loc = start;
+		char curr = 0;
+		// std::cout << "START " << r->getNameAsString() << std::endl;
+		for(; loc.isValid() && curr != c; loc = loc.getLocWithOffset(offset))
+		{
+			const SourceRange range(loc, loc);
+			
+			const std::string str = rewriter.getRewrittenText(range);
+			if(str.empty())
+				break;
+			
+			// std::cout << "\"" << str << "\"" << std::endl;
+			curr = str.back();
+			// str;
+		}
+		//std::cout << "END" << std::endl;
+		return loc;
+	}
+	
+	void writeStructFields(std::stringstream& struc, CXXRecordDecl* r)
+	{
+		for(auto p : r->fields())
+		{
+			struc << "\t" << p->getType().getAsString() << " " << p->getNameAsString() << ";" << std::endl;
+		}
+	}
+	
+	void writeStructBody(std::stringstream& struc, std::stringstream& methods, CXXRecordDecl* r)
+	{
+		const std::string classname = r->getTypedefNameForAnonDecl() 
+						? r->getTypedefNameForAnonDecl()->getNameAsString()
+						: r->getNameAsString();
+						
+		struc << "/// BEGIN FIELDS CLASS " << classname << std::endl;
+		writeStructFields(struc, r);
+		for(auto b : r->bases())
+			writeStructFields(struc, b.getType()->getAsCXXRecordDecl());
+		struc << "/// END FIELDS CLASS " << classname << std::endl;
+
+		methods << "/// BEGIN METHODS CLASS " << classname << std::endl;
+		for(auto m : r->methods())
+		{
+			for(auto stmt : m->getBody()->children())
+			{
+				TraverseStmt(stmt);
+			}
+			
+			//methods << "\t" << rewriter.getRewrittenText(m->getSourceRange()) << std::endl;
+			methods << "\t" << m->getReturnType().getAsString() << " " << classname << "_" << getFullyMangledName(m)
+				<< "(" << classname << "* self";
+				
+			for(auto a : m->parameters())
+			{
+				methods << ", " << a->getType().getAsString() << " " << a->getNameAsString();
+			}
+			
+			methods << ")\n\t";
+			methods << rewriter.getRewrittenText(m->getBody()->getSourceRange()) << std::endl;
+			
+			//rewriter.RemoveText(m->getSourceRange());
+		}
+		methods << "/// END METHODS CLASS " << classname << std::endl;
+	}
+	
+	bool VisitCXXRecordDecl(CXXRecordDecl* r)
 	{
 		for(FieldDecl* c : r->fields())
 		{
@@ -243,13 +346,52 @@ public:
 			if(c->getType()->isAnyPointerType())
 			{
 				rewriter.InsertTextBefore(c->getOuterLocStart(),
-										  std::string("// Pointers in structs need to be emulated\n") +
-											  "unsigned int filler" + c->getNameAsString() + "; // This keeps the struct the right size for OpenCL\n// ");
+							  std::string("// Pointers in structs need to be emulated\n") +
+							  "\tunsigned int filler" + c->getNameAsString() + 
+							  "; // This keeps the struct the right size for OpenCL\n\t// ");
 			}
 		}
+		
+		if(!r->isCLike())
+		{
+			std::stringstream struc, methods;
+			struc << std::endl << "typedef struct " << std::endl << "{" << std::endl;
+			writeStructBody(struc, methods, r);
+			struc << "} " << r->getNameAsString() << ";" << std::endl << std::endl;
+			struc << methods.str() << std::endl;
+
+			// std::cout << struc.str() << std::endl;
+			rewriter.ReplaceText(SourceRange(r->getOuterLocStart(),
+					     r->getLocEnd().getLocWithOffset(1)), 
+					     struc.str());
+		}
+		
 		return true;
 	}
 
+	bool VisitCXXMemberCallExpr(CXXMemberCallExpr* e)
+	{
+		std::stringstream newCall;
+		const std::string& recordName = e->getRecordDecl()->getNameAsString();
+		const CXXRecordDecl* implicitDecl = static_cast<CXXRecordDecl*>(e->getImplicitObjectArgument()
+								   ->getReferencedDeclOfCallee());
+		const std::string& implicitName = implicitDecl->getNameAsString();
+		
+		newCall << recordName << "_" << getFullyMangledName(e->getMethodDecl())
+			<< "(" << ((implicitDecl->getTypeForDecl()->isAnyPointerType()) ? "" : "&") 
+			<< implicitName;
+			
+		for(auto a : e->arguments())
+		{
+			newCall << ", " << rewriter.getRewrittenText(a->getSourceRange());
+		}
+		
+		newCall << ")";
+				
+		rewriter.ReplaceText(e->getSourceRange(), newCall.str());
+		return true;
+	}
+	
 	bool VisitFunctionDecl(FunctionDecl *f)
 	{
 		// Fix operator overloading
@@ -299,7 +441,8 @@ public:
 			}
 			else // __device__ function
 			{
-				rewriter.ReplaceText(f->getNameInfo().getSourceRange(), getFullyMangledName(f));
+				if(!f->isCXXClassMember()) // Class members are moved around and mangled
+					rewriter.ReplaceText(f->getNameInfo().getSourceRange(), getFullyMangledName(f));
 			}
 		}
 
@@ -360,7 +503,7 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 	// Transform to CL
 	int retval = 0;
 	retval = !runToolOnCodeWithArgs(frontend, code,
-						  {"-fsyntax-only",
+						{"-fsyntax-only",
 						   "-D__CUDACC__",
 						   "-D__CUDA_ARCH__", /// Since we are compiling GPU code
 						   "-D__CUDA_LIBRE_TRANSLATION_PHASE__",
@@ -376,6 +519,8 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 		std::cerr << "CUDA translation failed!" << std::endl;
 		return retval;
 	}
+
+	// std::cout << std::endl << result << std::endl;
 
 	// Check syntax of produced CL code
 	// @todo Add switch for additional syntax check!
