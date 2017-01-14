@@ -69,6 +69,27 @@ class CLASTVisitor : public RecursiveASTVisitor<CLASTVisitor>
 		return result;
 	}
 	
+	std::string getFullyMangledName(CXXRecordDecl* d)
+	{
+		std::string result = d->getTypedefNameForAnonDecl() 
+					? d->getTypedefNameForAnonDecl()->getNameAsString()
+					: d->getNameAsString();
+		
+		if(isa<ClassTemplateSpecializationDecl>(d))
+		{
+			auto decl = static_cast<ClassTemplateSpecializationDecl*>(d);
+			for(auto k : decl->getTemplateInstantiationArgs().asArray())
+			{
+				result += "_" + k.getAsType().getAsString();
+			}
+		
+			std::replace(result.begin(), result.end(), ' ', '_');
+			std::replace(result.begin(), result.end(), '*', 'p');
+			std::replace(result.begin(), result.end(), '&', 'r');
+		}
+
+		return result;
+	}
 public:
 	CLASTVisitor(Rewriter &R)
 		: rewriter(R) {}
@@ -112,6 +133,28 @@ public:
 		// translate it!
 		switch(s->getStmtClass())
 		{
+			case clang::Stmt::DeclStmtClass:
+			{
+				DeclStmt* stmt = static_cast<DeclStmt*>(s);
+				auto decl = stmt->getSingleDecl();
+
+				if(isa<VarDecl>(decl))
+				{
+					const auto varDecl = static_cast<VarDecl*>(decl);
+					const auto type = varDecl->getType();
+					
+					if(isa<TemplateSpecializationType>(type))
+					{
+						std::stringstream newline;
+						newline << getFullyMangledName(type->getAsCXXRecordDecl())
+							<< " " << varDecl->getNameAsString();
+						
+						rewriter.ReplaceText(varDecl->getSourceRange(), newline.str());
+					}
+				}
+			}
+			break;
+			
 			case clang::Stmt::CXXOperatorCallExprClass:
 			{
 				clang::CXXOperatorCallExpr* call = static_cast<clang::CXXOperatorCallExpr*>(s);
@@ -134,7 +177,7 @@ public:
 				clang::CallExpr* call = static_cast<clang::CallExpr*>(s);
 
 
-				auto decl = call->getCalleeDecl();//->getAsFunction();
+				auto decl = call->getCalleeDecl();
 				if(decl && !decl->isImplicit())
 				{
 					auto declFunc = decl->getAsFunction();
@@ -303,9 +346,9 @@ public:
 	
 	void writeStructBody(std::stringstream& struc, std::stringstream& methods, CXXRecordDecl* r)
 	{
-		const std::string classname = r->getTypedefNameForAnonDecl() 
-						? r->getTypedefNameForAnonDecl()->getNameAsString()
-						: r->getNameAsString();
+		/// The epilog that undefs stuff that got define e.g. for templates
+		std::stringstream epilog;
+		const std::string classname = getFullyMangledName(r);
 						
 		struc << "/// BEGIN FIELDS CLASS " << classname << std::endl;
 		writeStructFields(struc, r);
@@ -314,14 +357,46 @@ public:
 		struc << "/// END FIELDS CLASS " << classname << std::endl;
 
 		methods << "/// BEGIN METHODS CLASS " << classname << std::endl;
+		// If we got a template, define some names
+		if(isa<ClassTemplateSpecializationDecl>(r))
+		{
+			auto decl = static_cast<ClassTemplateSpecializationDecl*>(r);
+			auto parentDecl = decl->getTemplateInstantiationPattern()
+						->getDescribedTemplate();
+			
+			for(int i = 0; i < parentDecl->getTemplateParameters()->size(); i++)
+			{
+				const auto param = decl->getTemplateArgs()[i].getAsType();
+				const auto parentParam = static_cast<TemplateTypeParmDecl*>(parentDecl->getTemplateParameters()->getParam(i));
+			
+				methods << "#define " << parentParam->getNameAsString() << " " << param.getAsString() << std::endl;
+				epilog << "#undef " << parentParam->getNameAsString() << std::endl;
+			}
+		}
+		
 		for(auto m : r->methods())
 		{
-			for(auto stmt : m->getBody()->children())
+			// A template method has its body in the template declaration
+			// and not in the instanciated method itself. Handle that.
+			Stmt* body = nullptr;
+			if(!m->hasBody() 
+			  && m->isTemplateInstantiation())
+			{
+				auto decl = static_cast<ClassTemplateSpecializationDecl*>(m->getParent());
+				body = m->getTemplateInstantiationPattern()->getBody();
+			}
+			else
+				body = m->getBody();
+			
+			// Ignore implicit functions and mere declarations
+			if(body == nullptr || m->isImplicit())
+				continue;
+
+			for(auto stmt : body->children())
 			{
 				TraverseStmt(stmt);
 			}
 			
-			//methods << "\t" << rewriter.getRewrittenText(m->getSourceRange()) << std::endl;
 			methods << "\t" << m->getReturnType().getAsString() << " " << classname << "_" << getFullyMangledName(m)
 				<< "(" << classname << "* self";
 				
@@ -331,10 +406,10 @@ public:
 			}
 			
 			methods << ")\n\t";
-			methods << rewriter.getRewrittenText(m->getBody()->getSourceRange()) << std::endl;
-			
-			//rewriter.RemoveText(m->getSourceRange());
+			methods << rewriter.getRewrittenText(body->getSourceRange()) << std::endl;
 		}
+		
+		methods << epilog.str();
 		methods << "/// END METHODS CLASS " << classname << std::endl;
 	}
 	
@@ -351,8 +426,18 @@ public:
 							  "; // This keeps the struct the right size for OpenCL\n\t// ");
 			}
 		}
-		
-		if(!r->isCLike())
+
+		auto templ = r->getDescribedTemplate();
+		if(templ != nullptr)
+		{
+			rewriter.InsertTextBefore(templ->getLocStart(), "/// BEGIN TEMPLATE " + templ->getNameAsString() + "\n#if 0\n");
+			
+			rewriter.InsertTextAfter(findNextChar(templ->getSourceRange().getEnd(), ';'),
+						 "/// END TEMPLATE " + templ->getNameAsString() + "\n#endif\n");
+						
+			//rewriter.RemoveText(templ->getSourceRange());
+		}
+		else if(!r->isCLike())
 		{
 			std::stringstream struc, methods;
 			struc << std::endl << "typedef struct " << std::endl << "{" << std::endl;
@@ -369,6 +454,23 @@ public:
 		return true;
 	}
 
+	bool VisitTemplateSpecializationType(TemplateSpecializationType* s)
+	{
+		auto decl = s->getAsCXXRecordDecl();
+		const std::string name = getFullyMangledName(decl);
+		
+		std::stringstream struc, methods;
+		struc << std::endl << "typedef struct " << std::endl << "{" << std::endl;
+		writeStructBody(struc, methods, decl);
+		struc << "} " << name << ";" << std::endl << std::endl;
+		struc << methods.str() << std::endl;
+
+		const auto loc = findNextChar(decl->getSourceRange().getEnd(), ';');
+		rewriter.InsertTextAfter(loc, struc.str());
+
+		return true;
+	}
+	
 	bool VisitCXXMemberCallExpr(CXXMemberCallExpr* e)
 	{
 		std::stringstream newCall;

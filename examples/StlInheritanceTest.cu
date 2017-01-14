@@ -83,6 +83,25 @@ __device__ void f(AvailableToo t)
 	t.sz = t.inc(54);
 }
 
+template<typename T, typename T2>
+class TemplateClass
+{
+public:
+	T t;
+	T2 l; /* Line Comment */
+	T method(T in)
+	{
+		T tmp = in;
+		return t + in;
+	}
+};
+
+__device__ void tempTest()
+{
+	TemplateClass<int, float> templateClassI;
+	TemplateClass<float, int> templateClassF;
+}
+
 int main()
 {
 

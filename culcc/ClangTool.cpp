@@ -80,7 +80,7 @@ public:
 
 	bool VisitTypedefDecl(TypedefDecl* t)
 	{
-		if(!isInBlacklist(t))
+		if(!isInBlacklist(t) && t->getDescribedTemplate() == nullptr)
 		{
 			clResult << rewriter.getRewrittenText(t->getSourceRange()) << ";" << std::endl;
 		}
@@ -89,9 +89,15 @@ public:
 	bool VisitCXXRecordDecl(CXXRecordDecl* r)
 	{
 		if(!r->getNameAsString().empty()
-			&& !isInBlacklist(r))
+			&& !isInBlacklist(r)
+			&& !r->isPolymorphic())
 		{
-			clResult << rewriter.getRewrittenText(r->getSourceRange()) << ";" << std::endl;
+			auto temp = r->getDescribedTemplate();
+			
+			if(temp == nullptr)
+				clResult << rewriter.getRewrittenText(r->getSourceRange()) << ";" << std::endl;
+			else
+				clResult << rewriter.getRewrittenText(temp->getSourceRange()) << ";" << std::endl;
 		}
 		return true;
 	}
