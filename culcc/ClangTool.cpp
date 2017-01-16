@@ -89,16 +89,18 @@ public:
 	bool VisitCXXRecordDecl(CXXRecordDecl* r)
 	{
 		if(!r->getNameAsString().empty()
-			&& !isInBlacklist(r)
-			&& !r->isPolymorphic())
+			&& !isInBlacklist(r))
 		{
-			auto temp = r->getDescribedTemplate();
-			
-			if(temp == nullptr)
-				clResult << rewriter.getRewrittenText(r->getSourceRange()) << ";" << std::endl;
-			else
-				clResult << rewriter.getRewrittenText(temp->getSourceRange()) << ";" << std::endl;
+			if(!r->hasDefinition() || (r->hasDefinition() && !r->isPolymorphic()))
+			{
+				auto temp = r->getDescribedTemplate();
+				if (temp == nullptr)
+					clResult << rewriter.getRewrittenText(r->getSourceRange()) << ";" << std::endl;
+				else
+					clResult << rewriter.getRewrittenText(temp->getSourceRange()) << ";" << std::endl;
+			}
 		}
+
 		return true;
 	}
 
@@ -127,23 +129,27 @@ public:
 			// Definition only needs to be removed
 			if(!f->hasBody() || f->isCXXClassMember())
 			{
-				int offset = -1;
-				SourceLocation location = f->getLocation();
-				SourceLocation end = f->getLocEnd().getLocWithOffset(1);
-				std::string specifier = (isGlobal) ? "__global__" : "__device__";
-
-				while(rewriter.getRewrittenText(SourceRange(location.getLocWithOffset(offset), end)).find(specifier) != 0)
+				if(!f->isCXXClassMember())
 				{
-					offset--;
-				}
+					int offset = -1;
+					SourceLocation location = f->getLocEnd();
+					SourceLocation end = f->getLocEnd().getLocWithOffset(1);
+					std::string specifier = (isGlobal) ? "__global__" : "__device__";
 
-				rewriter.RemoveText(SourceRange(
-					location.getLocWithOffset(offset),
-					end));
+					while (
+						rewriter.getRewrittenText(SourceRange(location.getLocWithOffset(offset), end)).find(specifier)
+							!= 0)
+					{
+						offset--;
+					}
+
+					rewriter.RemoveText(SourceRange(
+						location.getLocWithOffset(offset),
+						end));
+				}
 
 				return true;
 			}
-
 
 			if(isGlobal)
 			{

@@ -94,12 +94,25 @@ public:
 		T tmp = in;
 		return t + in;
 	}
+
+	__device__ T* operator()()
+	{
+		return &t;
+	}
+
+	TemplateClass<T, T2>* operator+=(const T* t2)
+	{
+		t += *t2;
+		return this;
+	}
 };
 
 __device__ void tempTest()
 {
 	TemplateClass<int, float> templateClassI;
 	TemplateClass<float, int> templateClassF;
+
+	int* pointer = templateClassI();
 }
 
 int main()

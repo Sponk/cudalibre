@@ -30,6 +30,8 @@ class CLASTVisitor : public RecursiveASTVisitor<CLASTVisitor>
 				case '=': result += "Equals"; break;
 				case '<': result += "Smaller"; break;
 				case '>': result += "Greater"; break;
+				case '(': result += "BrOpen"; break;
+				case ')': result += "BrClose"; break;
 			}
 		
 		return result;
@@ -44,20 +46,30 @@ class CLASTVisitor : public RecursiveASTVisitor<CLASTVisitor>
 	 * @param d The declaration to translate.
 	 * @return A new name.
 	 */
-	std::string getFullyMangledName(FunctionDecl* d)
+	std::string getFullyMangledName(FunctionDecl* d, bool includeClassname = false)
 	{
 		// If we found a builtin
-		if(d->hasAttr<AnnotateAttr>()
-			&& d->getAttr<AnnotateAttr>()->getAnnotation().str() == "builtin")
+		if(d->hasAttr<AnnotateAttr>())
 		{
-			return d->getNameAsString();
+			if(d->getAttr<AnnotateAttr>()->getAnnotation().str() == "builtin")
+				return d->getNameAsString();
+			else if(d->getAttr<AnnotateAttr>()->getAnnotation().str() == "builtinf")
+			{
+				// Cut off the 'f' at the end
+				std::string result = d->getNameAsString();
+				result.pop_back();
+				return result;
+			}
 		}
 
 		std::string result;
+		if(includeClassname && d->isCXXClassMember())
+			result = getFullyMangledName(static_cast<CXXMethodDecl*>(d)->getParent()) + "_";
+
 		if(d->isOverloadedOperator())
-			result = getNewOperatorName(d->getNameAsString());
+			result += getNewOperatorName(d->getNameAsString());
 		else
-			result = d->getNameAsString();
+			result += d->getNameAsString();
 		
 		for(size_t i = 0; i < d->getNumParams(); i++)
 			result += "_" + d->getParamDecl(i)->getType().getAsString();
@@ -162,11 +174,25 @@ public:
 				auto decl = call->getCalleeDecl();
 				if(!decl->isImplicit() && decl->getAsFunction()->isOverloadedOperator())
 				{
-					rewriter.InsertTextBefore(call->getLocStart(),
-								  getFullyMangledName(decl->getAsFunction()) + "(");
-					
-					rewriter.InsertTextAfter(call->getLocEnd().getLocWithOffset(1), ")");
-					rewriter.ReplaceText(call->getCallee()->getSourceRange(), ",");
+					if(call->isInfixBinaryOp())
+					{
+						rewriter.InsertTextBefore(call->getLocStart(),
+												  getFullyMangledName(decl->getAsFunction(), true) + "(");
+						rewriter.InsertTextAfter(call->getLocEnd().getLocWithOffset(1), ")");
+						rewriter.ReplaceText(call->getCallee()->getSourceRange(), ",");
+					}
+					else if(call->isAssignmentOp())
+					{
+						call->dump();
+					}
+					else
+					{
+						rewriter.InsertTextBefore(call->getLocStart(),
+												  getFullyMangledName(decl->getAsFunction(), true) + "(&");
+
+						rewriter.InsertTextAfter(call->getLocEnd().getLocWithOffset(1), ")");
+						rewriter.RemoveText(call->getCallee()->getSourceRange());
+					}
 				}
 				
 			}
@@ -183,12 +209,7 @@ public:
 					auto declFunc = decl->getAsFunction();
 					auto range = SourceRange(call->getLocStart(),
 								call->getLocStart().getLocWithOffset(declFunc->getNameAsString().size() - 1));
-
-					if(range.isInvalid())
-					{
-						llvm::report_fatal_error("Range is invalid!");
-					}
-
+					
 					if(rewriter.getRangeSize(range) < 40)
 						rewriter.ReplaceText(range, getFullyMangledName(declFunc));
 				}
@@ -361,16 +382,24 @@ public:
 		if(isa<ClassTemplateSpecializationDecl>(r))
 		{
 			auto decl = static_cast<ClassTemplateSpecializationDecl*>(r);
-			auto parentDecl = decl->getTemplateInstantiationPattern()
-						->getDescribedTemplate();
-			
-			for(int i = 0; i < parentDecl->getTemplateParameters()->size(); i++)
+			auto pattern = decl->getTemplateInstantiationPattern();
+			//pattern->dump();
+
+			methods << "#define this self" << std::endl;
+			epilog << "#undef this" << std::endl;
+
+			if(pattern)
 			{
-				const auto param = decl->getTemplateArgs()[i].getAsType();
-				const auto parentParam = static_cast<TemplateTypeParmDecl*>(parentDecl->getTemplateParameters()->getParam(i));
-			
-				methods << "#define " << parentParam->getNameAsString() << " " << param.getAsString() << std::endl;
-				epilog << "#undef " << parentParam->getNameAsString() << std::endl;
+				auto parentDecl = pattern->getDescribedTemplate();
+
+				for(int i = 0; i < parentDecl->getTemplateParameters()->size(); i++)
+				{
+					const auto param = decl->getTemplateArgs()[i].getAsType();
+					const auto parentParam = static_cast<TemplateTypeParmDecl*>(parentDecl->getTemplateParameters()->getParam(i));
+
+					methods << "#define " << parentParam->getNameAsString() << " " << param.getAsString() << std::endl;
+					epilog << "#undef " << parentParam->getNameAsString() << std::endl;
+				}
 			}
 		}
 		
@@ -396,10 +425,24 @@ public:
 			{
 				TraverseStmt(stmt);
 			}
-			
-			methods << "\t" << m->getReturnType().getAsString() << " " << classname << "_" << getFullyMangledName(m)
-				<< "(" << classname << "* self";
-				
+
+			const QualType type = m->getReturnType();
+			if(isa<TemplateSpecializationType>(type))
+			{
+				methods << "\t" << getFullyMangledName(type->getAsCXXRecordDecl());
+			}
+			else if(type->isAnyPointerType() && isa<TemplateSpecializationType>(type->getPointeeType()))
+			{
+				methods << "\t" << getFullyMangledName(type->getPointeeType()->getAsCXXRecordDecl()) << "* ";
+			}
+			else
+			{
+				methods << "\t" << type.getAsString();
+			}
+
+			methods << " " << classname << "_" << getFullyMangledName(m)
+					<< "(" << classname << "* self";
+
 			for(auto a : m->parameters())
 			{
 				methods << ", " << a->getType().getAsString() << " " << a->getNameAsString();
@@ -433,7 +476,7 @@ public:
 			rewriter.InsertTextBefore(templ->getLocStart(), "/// BEGIN TEMPLATE " + templ->getNameAsString() + "\n#if 0\n");
 			
 			rewriter.InsertTextAfter(findNextChar(templ->getSourceRange().getEnd(), ';'),
-						 "/// END TEMPLATE " + templ->getNameAsString() + "\n#endif\n");
+						 "\n/// END TEMPLATE " + templ->getNameAsString() + "\n#endif\n");
 						
 			//rewriter.RemoveText(templ->getSourceRange());
 		}
@@ -457,6 +500,11 @@ public:
 	bool VisitTemplateSpecializationType(TemplateSpecializationType* s)
 	{
 		auto decl = s->getAsCXXRecordDecl();
+
+		if(!decl->hasDefinition()
+			|| !isa<ClassTemplateSpecializationDecl>(decl))
+			return true;
+
 		const std::string name = getFullyMangledName(decl);
 		
 		std::stringstream struc, methods;
@@ -601,6 +649,8 @@ private:
 
 int transformCudaClang(const std::string &code, std::string& result, const std::string& stdinc)
 {
+	// std::cout << std::endl << code << std::endl;
+
 	auto frontend = new CLFrontendAction(result);
 	// Transform to CL
 	int retval = 0;
@@ -622,7 +672,7 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 		return retval;
 	}
 
-	// std::cout << std::endl << result << std::endl;
+	std::cout << std::endl << result << std::endl;
 
 	// Check syntax of produced CL code
 	// @todo Add switch for additional syntax check!
