@@ -4,7 +4,7 @@ include_directories(
 		${CudaLibre_INCLUDE_DIRS}
 )
 
-add_executable(runtime-tests main.cpp EnumerationTest.cpp CudaLibreContextTest.cpp KernelTest.cpp
+add_executable(runtime-tests main.cpp EnumerationTest.cpp KernelTest.cpp
 		../CudaLibreContext.cpp ../CudaDevice.cpp ../CudaDevice.h)
 target_link_libraries(runtime-tests clruntime ${GTEST_LIBRARIES})
 
