@@ -92,7 +92,18 @@ class CLASTVisitor : public RecursiveASTVisitor<CLASTVisitor>
 			auto decl = static_cast<ClassTemplateSpecializationDecl*>(d);
 			for(auto k : decl->getTemplateInstantiationArgs().asArray())
 			{
-				result += "_" + k.getAsType().getAsString();
+				switch(k.getKind())
+				{
+					case TemplateArgument::ArgKind::Type:
+						result += "_" + k.getAsType().getAsString();
+						break;
+
+					case TemplateArgument::ArgKind::Integral:
+						result += "_" + k.getAsIntegral().toString(16);
+						break;
+
+					default: llvm::report_fatal_error("Unknown template argument kind!");
+				}
 			}
 		
 			std::replace(result.begin(), result.end(), ' ', '_');
@@ -359,9 +370,16 @@ public:
 	
 	void writeStructFields(std::stringstream& struc, CXXRecordDecl* r)
 	{
-		for(auto p : r->fields())
+		for(const FieldDecl* p : r->fields())
 		{
-			struc << "\t" << p->getType().getAsString() << " " << p->getNameAsString() << ";" << std::endl;
+			if(isa<ConstantArrayType>(p->getType()))
+			{
+				const ConstantArrayType* type = static_cast<const ConstantArrayType*>(p->getType()->getAsArrayTypeUnsafe());
+				struc << "\t" << type->getElementType().getAsString() << " " << p->getNameAsString()
+					  << "[" << type->getSize().toString(10, false) << "];" << std::endl;
+			}
+			else
+ 				struc << "\t" << p->getType().getAsString() << " " << p->getNameAsString() << ";" << std::endl;
 		}
 	}
 	
@@ -394,10 +412,27 @@ public:
 
 				for(int i = 0; i < parentDecl->getTemplateParameters()->size(); i++)
 				{
-					const auto param = decl->getTemplateArgs()[i].getAsType();
+					const auto arg = decl->getTemplateArgs()[i];
 					const auto parentParam = static_cast<TemplateTypeParmDecl*>(parentDecl->getTemplateParameters()->getParam(i));
 
-					methods << "#define " << parentParam->getNameAsString() << " " << param.getAsString() << std::endl;
+					switch(arg.getKind())
+					{
+						case TemplateArgument::ArgKind::Type:
+						{
+							const auto param = arg.getAsType();
+							methods << "#define " << parentParam->getNameAsString() << " " << param.getAsString() << std::endl;
+						} break;
+
+						case TemplateArgument::ArgKind::Integral:
+						{
+							const auto param = arg.getAsIntegral();
+							const auto parentParam = static_cast<TemplateTypeParmDecl*>(parentDecl->getTemplateParameters()->getParam(i));
+							methods << "#define " << parentParam->getNameAsString() << " (0x" << param.toString(16) << ")" << std::endl;
+						} break;
+
+						default: llvm::report_fatal_error("Unknown template argument kind!");
+					}
+
 					epilog << "#undef " << parentParam->getNameAsString() << std::endl;
 				}
 			}

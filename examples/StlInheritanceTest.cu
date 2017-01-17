@@ -113,10 +113,18 @@ public:
 	}
 };
 
+template<typename T, int size>
+class Array
+{
+public:
+	T data[size];
+};
+
 __device__ void tempTest()
 {
 	TemplateClass<int, float> templateClassI;
 	TemplateClass<float, int> templateClassF;
+	Array<float, 12> array;
 
 	int* pointer = templateClassI();
 }
