@@ -11,3 +11,5 @@ install(TARGETS cudastd
         ARCHIVE DESTINATION "${INSTALL_LIB_DIR}" COMPONENT slib
         PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}/cudalibre"
         COMPONENT dev)
+
+add_subdirectory(test)
