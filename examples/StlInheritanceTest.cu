@@ -100,6 +100,12 @@ public:
 		return &t;
 	}
 
+	__device__ T* operator()(T l)
+	{
+		t += l;
+		return &t;
+	}
+
 	TemplateClass<T, T2>* operator+=(const T* t2)
 	{
 		t += *t2;
