@@ -126,11 +126,18 @@ struct OutsideTemplate;
 template<>
 struct OutsideTemplate<unsigned char>
 {
-	float method(unsigned char val)
+	float method(unsigned char& val)
 	{
 		return 0.0f;
 	}
 };
+
+__device__ void referenceTest(float& ref)
+{
+	ref = 6;
+	float var;
+	float& ref2 = var;
+}
 
 __device__ void tempTest()
 {
@@ -139,6 +146,8 @@ __device__ void tempTest()
 	Array<float, 12> array;
 
 	int* pointer = templateClassI();
+	float f;
+	referenceTest(f);
 }
 
 int main()

@@ -155,6 +155,15 @@ public:
 		// translate it!
 		switch(s->getStmtClass())
 		{
+			case clang::Stmt::DeclRefExprClass:
+			{
+				DeclRefExpr* expr = static_cast<DeclRefExpr*>(s);
+				VarDecl* varDecl = static_cast<VarDecl*>(expr->getReferencedDeclOfCallee());
+				if(isa<ReferenceType>(varDecl->getType()))
+					rewriter.InsertTextBefore(expr->getLocation(), "*");
+			}
+			break;
+
 			case clang::Stmt::DeclStmtClass:
 			{
 				DeclStmt* stmt = static_cast<DeclStmt*>(s);
@@ -169,9 +178,14 @@ public:
 					{
 						std::stringstream newline;
 						newline << getFullyMangledName(type->getAsCXXRecordDecl())
-							<< " " << varDecl->getNameAsString();
-						
+								<< " " << varDecl->getNameAsString();
+
 						rewriter.ReplaceText(varDecl->getSourceRange(), newline.str());
+					}
+					else if(isa<ReferenceType>(varDecl->getType()))
+					{
+						transformReferenceParameter(varDecl);
+						rewriter.InsertTextBefore(varDecl->getInit()->getLocStart(), "&");
 					}
 				}
 			}
@@ -182,7 +196,8 @@ public:
 				clang::CXXOperatorCallExpr* call = static_cast<clang::CXXOperatorCallExpr*>(s);
 
 				auto decl = call->getCalleeDecl();
-				if(!decl->isImplicit() && decl->getAsFunction()->isOverloadedOperator())
+				if(!decl->isImplicit()
+					&& decl->getAsFunction()->isOverloadedOperator())
 				{
 					if(call->isInfixBinaryOp())
 					{
@@ -204,7 +219,6 @@ public:
 						rewriter.RemoveText(call->getCallee()->getSourceRange());
 					}
 				}
-				
 			}
 			break;
 
@@ -219,7 +233,16 @@ public:
 					auto declFunc = decl->getAsFunction();
 					auto range = SourceRange(call->getLocStart(),
 								call->getLocStart().getLocWithOffset(declFunc->getNameAsString().size() - 1));
-					
+
+					for(int i = 0; i < declFunc->getNumParams(); i++)
+					{
+						const auto param = declFunc->getParamDecl(i);
+						if(isa<ReferenceType>(param->getType()))
+						{
+							rewriter.InsertTextBefore(call->getArg(i)->getLocStart(), "&");
+						}
+					}
+
 					if(rewriter.getRangeSize(range) < 40)
 						rewriter.ReplaceText(range, getFullyMangledName(declFunc));
 				}
@@ -301,7 +324,7 @@ public:
 					}
 				}
 			}
-				break;
+			break;
 		}
 
 		return true;
@@ -400,7 +423,6 @@ public:
 		{
 			auto decl = static_cast<ClassTemplateSpecializationDecl*>(r);
 			auto pattern = decl->getTemplateInstantiationPattern();
-			//pattern->dump();
 
 			methods << "#define this self" << std::endl;
 			epilog << "#undef this" << std::endl;
@@ -479,7 +501,16 @@ public:
 
 			for(auto a : m->parameters())
 			{
-				methods << ", " << a->getType().getAsString() << " " << a->getNameAsString();
+				if(isa<ReferenceType>(a->getType()))
+				{
+					std::string type = a->getType().getAsString();
+					std::replace(type.begin(), type.end(), '&', '*');
+					methods << ", " << type << " " << a->getNameAsString();
+				}
+				else
+				{
+					methods << ", " << a->getType().getAsString() << " " << a->getNameAsString();
+				}
 			}
 			
 			methods << ")\n\t";
@@ -591,7 +622,17 @@ public:
 		rewriter.ReplaceText(e->getSourceRange(), newCall.str());
 		return true;
 	}
-	
+
+	void transformReferenceParameter(VarDecl* a)
+	{
+		std::string line = rewriter.getRewrittenText(a->getSourceRange());
+
+		std::replace(line.begin(), line.end(), '&', '*');
+
+		const SourceLocation startLoc = a->getOuterLocStart();
+		rewriter.ReplaceText(a->getSourceRange(), line);
+	}
+
 	bool VisitFunctionDecl(FunctionDecl *f)
 	{
 		// Fix operator overloading
@@ -643,6 +684,14 @@ public:
 			{
 				if(!f->isCXXClassMember()) // Class members are moved around and mangled
 					rewriter.ReplaceText(f->getNameInfo().getSourceRange(), getFullyMangledName(f));
+
+				for(auto a : f->parameters())
+				{
+					if(isa<ReferenceType>(a->getType()))
+					{
+						transformReferenceParameter(a);
+					}
+				}
 			}
 		}
 
