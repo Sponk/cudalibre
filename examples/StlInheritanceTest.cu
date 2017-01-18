@@ -120,6 +120,18 @@ public:
 	T data[size];
 };
 
+template<class T>
+struct OutsideTemplate;
+
+template<>
+struct OutsideTemplate<unsigned char>
+{
+	float method(unsigned char val)
+	{
+		return 0.0f;
+	}
+};
+
 __device__ void tempTest()
 {
 	TemplateClass<int, float> templateClassI;

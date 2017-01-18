@@ -86,7 +86,6 @@ class CLASTVisitor : public RecursiveASTVisitor<CLASTVisitor>
 		std::string result = d->getTypedefNameForAnonDecl() 
 					? d->getTypedefNameForAnonDecl()->getNameAsString()
 					: d->getNameAsString();
-		
 		if(isa<ClassTemplateSpecializationDecl>(d))
 		{
 			auto decl = static_cast<ClassTemplateSpecializationDecl*>(d);
@@ -506,21 +505,38 @@ public:
 		}
 
 		auto templ = r->getDescribedTemplate();
-		if(templ != nullptr)
+		if(templ != nullptr || isa<ClassTemplateSpecializationDecl>(r))
 		{
-			rewriter.InsertTextBefore(templ->getLocStart(), "/// BEGIN TEMPLATE " + templ->getNameAsString() + "\n#if 0\n");
+			SourceLocation start;
+			SourceLocation end;
+			std::string name;
+
+			if(templ)
+			{
+				start = templ->getLocStart();
+				end = templ->getSourceRange().getEnd();
+				name = templ->getNameAsString();
+			}
+			else
+			{
+				start = r->getOuterLocStart();
+				end = r->getSourceRange().getEnd();
+				name = r->getNameAsString();
+			}
+
+			rewriter.InsertTextBefore(start, "/// BEGIN TEMPLATE " + name + "\n#if 0\n");
 			
-			rewriter.InsertTextAfter(findNextChar(templ->getSourceRange().getEnd(), ';'),
-						 "\n/// END TEMPLATE " + templ->getNameAsString() + "\n#endif\n");
+			rewriter.InsertTextAfter(findNextChar(end, ';'),
+						 "\n/// END TEMPLATE " + name + "\n#endif\n");
 						
 			//rewriter.RemoveText(templ->getSourceRange());
 		}
-		else if(!r->isCLike())
+		else if(!r->isCLike() && !isa<ClassTemplateSpecializationDecl>(r))
 		{
 			std::stringstream struc, methods;
 			struc << std::endl << "typedef struct " << std::endl << "{" << std::endl;
 			writeStructBody(struc, methods, r);
-			struc << "} " << r->getNameAsString() << ";" << std::endl << std::endl;
+			struc << "} " << getFullyMangledName(r) << ";" << std::endl << std::endl;
 			struc << methods.str() << std::endl;
 
 			// std::cout << struc.str() << std::endl;
@@ -535,7 +551,6 @@ public:
 	bool VisitTemplateSpecializationType(TemplateSpecializationType* s)
 	{
 		auto decl = s->getAsCXXRecordDecl();
-
 		if(!decl->hasDefinition()
 			|| !isa<ClassTemplateSpecializationDecl>(decl))
 			return true;
