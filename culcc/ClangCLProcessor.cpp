@@ -698,6 +698,36 @@ public:
 		return true;
 	}
 
+	bool VisitCXXStaticCastExpr(CXXStaticCastExpr* c)
+	{
+		TraverseStmt(c->getSubExpr());
+		const std::string call = "((" + c->getType().getAsString() + ") ("
+							+ rewriter.getRewrittenText(c->getSubExpr()->getSourceRange()) + "))";
+
+		rewriter.ReplaceText(c->getSourceRange(), call);
+		return true;
+	}
+
+	bool VisitCXXDynamicCastExpr(CXXDynamicCastExpr* c)
+	{
+		TraverseStmt(c->getSubExpr());
+		const std::string call = "((" + c->getType().getAsString() + ") ("
+			+ rewriter.getRewrittenText(c->getSubExpr()->getSourceRange()) + "))";
+
+		rewriter.ReplaceText(c->getSourceRange(), call);
+		return true;
+	}
+
+	bool VisitCXXReinterpretCastExpr(CXXReinterpretCastExpr* c)
+	{
+		TraverseStmt(c->getSubExpr());
+		const std::string call = "((" + c->getType().getAsString() + ") ("
+			+ rewriter.getRewrittenText(c->getSubExpr()->getSourceRange()) + "))";
+
+		rewriter.ReplaceText(c->getSourceRange(), call);
+		return true;
+	}
+
 private:
 	Rewriter& rewriter;
 };
