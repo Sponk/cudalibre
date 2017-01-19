@@ -132,11 +132,13 @@ struct OutsideTemplate<unsigned char>
 	}
 };
 
-__device__ void referenceTest(float& ref)
+__device__ void referenceTest(float& ref, Test& t)
 {
 	ref = 6;
 	float var;
 	float& ref2 = var;
+
+	t.this_is_a_test++;
 }
 
 __device__ void tempTest()
@@ -147,7 +149,19 @@ __device__ void tempTest()
 
 	int* pointer = templateClassI();
 	float f;
-	referenceTest(f);
+	Test t;
+	referenceTest(f, t);
+}
+
+__device__ float2 operator*(float2 a, float b)
+{}
+
+__device__ float2 operator*(float2 a, float2 b)
+{}
+
+__device__ float2 fail(float2 v)
+{
+	return v * v * v * v;
 }
 
 int main()

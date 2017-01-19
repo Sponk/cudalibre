@@ -160,7 +160,10 @@ public:
 				DeclRefExpr* expr = static_cast<DeclRefExpr*>(s);
 				VarDecl* varDecl = static_cast<VarDecl*>(expr->getReferencedDeclOfCallee());
 				if(isa<ReferenceType>(varDecl->getType()))
-					rewriter.InsertTextBefore(expr->getLocation(), "*");
+				{
+					rewriter.InsertTextBefore(expr->getLocation(), "(*");
+					rewriter.InsertTextAfter(expr->getLocation().getLocWithOffset(varDecl->getNameAsString().size()), ")");
+				}
 			}
 			break;
 
@@ -201,10 +204,17 @@ public:
 				{
 					if(call->isInfixBinaryOp())
 					{
-						rewriter.InsertTextBefore(call->getLocStart(),
-												  getFullyMangledName(decl->getAsFunction(), true) + "(");
-						rewriter.InsertTextAfter(call->getLocEnd().getLocWithOffset(1), ")");
+
+						TraverseStmt(call->getArg(0));
+						TraverseStmt(call->getArg(1));
+
 						rewriter.ReplaceText(call->getCallee()->getSourceRange(), ",");
+
+						std::string line;
+						line = getFullyMangledName(decl->getAsFunction(), true) + "(";
+						line += rewriter.getRewrittenText(call->getSourceRange()) + ")";
+						rewriter.ReplaceText(call->getSourceRange(), line);
+
 					}
 					else if(call->isAssignmentOp())
 					{
@@ -212,10 +222,12 @@ public:
 					}
 					else
 					{
+						const size_t rangesize = rewriter.getRangeSize(call->getSourceRange());
+						rewriter.InsertTextAfter(call->getLocStart().getLocWithOffset(rangesize), ")");
+
 						rewriter.InsertTextBefore(call->getLocStart(),
 												  getFullyMangledName(decl->getAsFunction(), true) + "(&");
 
-						rewriter.InsertTextAfter(call->getLocEnd().getLocWithOffset(1), ")");
 						rewriter.RemoveText(call->getCallee()->getSourceRange());
 					}
 				}
@@ -701,31 +713,19 @@ public:
 	bool VisitCXXStaticCastExpr(CXXStaticCastExpr* c)
 	{
 		TraverseStmt(c->getSubExpr());
-		const std::string call = "((" + c->getType().getAsString() + ") ("
-							+ rewriter.getRewrittenText(c->getSubExpr()->getSourceRange()) + "))";
-
-		rewriter.ReplaceText(c->getSourceRange(), call);
-		return true;
+		rewriter.ReplaceText(SourceRange(c->getLocStart(), c->getAngleBrackets().getEnd()), "(" + c->getType().getAsString() + ")");
 	}
 
 	bool VisitCXXDynamicCastExpr(CXXDynamicCastExpr* c)
 	{
 		TraverseStmt(c->getSubExpr());
-		const std::string call = "((" + c->getType().getAsString() + ") ("
-			+ rewriter.getRewrittenText(c->getSubExpr()->getSourceRange()) + "))";
-
-		rewriter.ReplaceText(c->getSourceRange(), call);
-		return true;
+		rewriter.ReplaceText(SourceRange(c->getLocStart(), c->getAngleBrackets().getEnd()), "(" + c->getType().getAsString() + ")");
 	}
 
 	bool VisitCXXReinterpretCastExpr(CXXReinterpretCastExpr* c)
 	{
 		TraverseStmt(c->getSubExpr());
-		const std::string call = "((" + c->getType().getAsString() + ") ("
-			+ rewriter.getRewrittenText(c->getSubExpr()->getSourceRange()) + "))";
-
-		rewriter.ReplaceText(c->getSourceRange(), call);
-		return true;
+		rewriter.ReplaceText(SourceRange(c->getLocStart(), c->getAngleBrackets().getEnd()), "(" + c->getType().getAsString() + ")");
 	}
 
 private:
@@ -821,6 +821,7 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 					 RTINC,
 #endif
 					 "-include", "clc/clc.h",
+					 "-D__host__=/**/"
 					 //"-include", "cuda_vectors.h",
 					}, "input.cl");
 	
