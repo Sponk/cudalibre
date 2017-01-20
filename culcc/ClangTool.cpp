@@ -18,6 +18,7 @@
 #include <cstring>
 
 #include <cudalibre.h>
+#include <regex>
 
 #include "GNUBlacklist.h"
 
@@ -85,7 +86,7 @@ public:
 			clResult << rewriter.getRewrittenText(t->getSourceRange()) << ";" << std::endl;
 		}
 	}
-	
+
 	bool VisitCXXRecordDecl(CXXRecordDecl* r)
 	{
 		if(!r->getNameAsString().empty()
@@ -117,6 +118,64 @@ public:
 		rewriter.ReplaceText(SourceRange(e->getLocStart(), config->getLocEnd().getLocWithOffset(3)), newDecl.str());
 		return true;
 	}
+
+	SourceLocation findNextOccurance(const SourceLocation& start, const std::string& c, int offset = 1)
+	{
+		const size_t sz = c.size();
+		auto loc = start;
+		std::string curr = " ";
+		for(; loc.isValid() && curr != c; loc = loc.getLocWithOffset(offset))
+		{
+			const SourceRange range(loc, loc.getLocWithOffset(sz));
+			curr = rewriter.getRewrittenText(range);
+			std::cerr << curr << std::endl;
+		}
+		return loc;
+	}
+
+	/*bool VisitVarDecl(VarDecl* d)
+	{
+		if(isInBlacklist(d))
+			return true;
+
+		if(d->hasAttr<CUDASharedAttr>())
+		{
+
+			//const SourceLocation loc = findNextOccurance(d->getOuterLocStart(), "__shared__", -1);
+			//const SourceLocation loc = d->getLocStart();
+			std::cerr << "STUFF: " << rewriter.getRewrittenText(d->getSourceRange()) << std::endl;
+			//rewriter.ReplaceText(SourceRange(loc, loc.getLocWithOffset(10)), "__local");
+			//d->dump();
+		}
+		return true;
+	}*/
+
+/*	bool VisitStmt(Stmt* stmt)
+	{
+		switch(stmt->getStmtClass())
+		{
+			case clang::Stmt::DeclStmtClass:
+			{
+				DeclStmt* d = static_cast<DeclStmt*>(stmt);
+				if(!d->isSingleDecl())
+					return true;
+
+				auto decl = d->getSingleDecl();
+
+				if(isa<VarDecl>(decl) && decl->hasAttr<CUDASharedAttr>())
+				{
+					const auto varDecl = static_cast<VarDecl*>(decl);
+					const auto type = varDecl->getType();
+
+					rewriter.ReplaceText(varDecl->getSourceRange(), "<ALSDKFJ>");
+					varDecl->dump();
+				}
+			}
+			break;
+		}
+
+		return true;
+	}*/
 
 	bool VisitFunctionDecl(FunctionDecl *f)
 	{
@@ -309,7 +368,11 @@ public:
 		TheRewriter.getEditBuffer(SM.getMainFileID()).write(result);
 
 		result.flush();
-		
+
+		/// @todo Find proper solution using Clang. Somehow using a macro prevent clang from knowing a proper source location.
+		std::string clStr =  std::regex_replace(clResult.str(), std::regex("__shared__"), "__local");
+		clResult.str(clStr);
+
 		std::string clOutput;
 		if(transformCudaClang(clResult.str(), clOutput, stdinc))
 		{
@@ -400,6 +463,8 @@ int main(int argc, char** argv)
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__global__=__attribute__((global))"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__device__=__attribute__((device))"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__host__=__attribute__((host))"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__shared__=__attribute__((shared))"));
+
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__constant__=__attribute__((constant))"));
 
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDALIBRE_CLANG__"));

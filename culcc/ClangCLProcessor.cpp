@@ -190,6 +190,15 @@ public:
 						transformReferenceParameter(varDecl);
 						rewriter.InsertTextBefore(varDecl->getInit()->getLocStart(), "&");
 					}
+
+					/*if(varDecl->hasAttr<AnnotateAttr>())
+					{
+						const AnnotateAttr* attr = varDecl->getAttr<AnnotateAttr>();
+						if(attr->getAnnotation().str() == "local")
+						{
+							varDecl->dump();
+						}
+					}**/
 				}
 			}
 			break;
@@ -238,13 +247,24 @@ public:
 			{
 				clang::CallExpr* call = static_cast<clang::CallExpr*>(s);
 
-
 				auto decl = call->getCalleeDecl();
 				if(decl && !decl->isImplicit())
 				{
 					auto declFunc = decl->getAsFunction();
 					auto range = SourceRange(call->getLocStart(),
 								call->getLocStart().getLocWithOffset(declFunc->getNameAsString().size() - 1));
+
+					// Handle __syncthreads etc.
+					if(declFunc->getNameAsString() == "__syncthreads")
+					{
+						rewriter.ReplaceText(call->getSourceRange(), "barrier(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE)");
+						return true;
+					}
+					else if(declFunc->getNameAsString() == "__threadfence_block")
+					{
+						rewriter.ReplaceText(call->getSourceRange(), "mem_fence(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE)");
+						return true;
+					}
 
 					for(int i = 0; i < declFunc->getNumParams(); i++)
 					{
