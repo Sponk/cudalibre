@@ -12,28 +12,14 @@ __host__ __device__ uint2 make_uint2(unsigned int x, unsigned int y) { uint2 r; 
 __host__ __device__ uint3 make_uint3(unsigned int x, unsigned int y, unsigned int z) { uint3 r; r.x = x; r.y = y; r.z = z; return r; }
 __host__ __device__ uint4 make_uint4(unsigned int x, unsigned int y, unsigned int z, unsigned int w) { uint4 r; r.x = x; r.y = y; r.z = z; r.w = w; return r; }
 
-/*
-__host__ __device__ float fminf(float a, float b)
+// https://community.amd.com/thread/167462
+__device__ int atomicInc(__local int* addr, int val)
 {
-	return a < b ? a : b;
+	return atomic_inc(addr);
 }
 
-__host__ __device__ float fmaxf(float a, float b)
+__device__ int atomicAdd(__local int* addr, int val)
 {
-	return a > b ? a : b;
+	return atomic_add(addr, val);
 }
 
-__host__ __device__ int max(int a, int b)
-{
-	return a > b ? a : b;
-}
-
-__host__ __device__ int min(int a, int b)
-{
-	return a < b ? a : b;
-}
-
-__host__ __device__ float rsqrtf(float x)
-{
-	return 1.0f / sqrtf(x);
-}*/

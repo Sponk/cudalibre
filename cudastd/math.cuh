@@ -36,6 +36,9 @@ extern int get_local_size(int);
 extern int get_group_id(int);
 extern int get_local_id(int);
 
+extern void __syncthreads();
+extern void __threadfence_block();
+
 extern dim3 threadIdx;
 extern dim3 blockIdx;
 extern dim3 blockDim;
@@ -47,6 +50,11 @@ extern dim3 blockDim;
 #ifndef __local
 #define __local __attribute__((annotate("local")))
 #endif
+
+#ifndef __shared__
+#define __shared__ __local
+#endif
+
 #endif // __CUDA_LIBRE_TRANSLATION_PHASE__
 
 // Some stuff used in the compiler to prevent errors while transforming code
@@ -80,6 +88,8 @@ __DEFINE_VECSTRUCT4(unsigned int, uint4)
  * @addtogroup cudastd
  *  @{
  */
+
+_CL_BUILTIN_ __device__ extern int printf(const char* fmt, int);
  
 /// @todo Implementation
 _CL_BUILTIN_ __device__ extern float abs(float);
@@ -161,6 +171,33 @@ _CL_BUILTINF_ __device__ extern float y1f(float x);
 _CL_BUILTINF_ __device__ extern float ynf(int n, float x);
 _CL_BUILTINF_ __device__ extern float jnf(int n, float x);
 
+/// Atomics! YEAH!
+
+/**
+ * OpenCL Builtins
+ */
+
+#ifndef __local
+#define __local
+#endif
+
+_CL_BUILTIN_ __device__ extern int atomic_add(int* p, int val);
+_CL_BUILTIN_ __device__ extern unsigned int atomic_add(unsigned int* p, unsigned int val);
+
+_CL_BUILTIN_ __device__ extern int atomic_inc(int* p);
+_CL_BUILTIN_ __device__ extern unsigned int atomic_inc(unsigned int* p);
+
+/**
+ * @brief Atomic increment
+ *
+ * Increases *addr by one, if (val <= *addr).
+ *
+ * @attention Does not work like in CUDA, val is ignored!
+ * @todo Fix this!
+ * @return The original value found in *addr.
+ */
+__device__ int atomicInc(__local int* addr, int val);
+__device__ int atomicAdd(__local int* addr, int val);
 
 #undef _CL_BUILTIN_
 #undef __DEFINE_VECSTRUCT2
