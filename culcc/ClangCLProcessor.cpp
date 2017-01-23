@@ -125,6 +125,16 @@ public:
 		return true;
 	}
 
+	bool VisitAnnotateAttr(AnnotateAttr* attr)
+	{
+		/*if(attr->getAnnotation().str() == "local")
+		{
+			std::cout << rewriter.getRewrittenText(attr->getRange()) << std::endl;
+		}*/
+
+		return true;
+	}
+
 	CXXThisExpr* containsThisExpr(Stmt* member)
 	{
 		if(isa<CXXThisExpr>(member))
@@ -170,6 +180,10 @@ public:
 			case clang::Stmt::DeclStmtClass:
 			{
 				DeclStmt* stmt = static_cast<DeclStmt*>(s);
+
+				if(!stmt->isSingleDecl())
+					return true;
+
 				auto decl = stmt->getSingleDecl();
 
 				if(isa<VarDecl>(decl))
@@ -191,14 +205,21 @@ public:
 						rewriter.InsertTextBefore(varDecl->getInit()->getLocStart(), "&");
 					}
 
-					/*if(varDecl->hasAttr<AnnotateAttr>())
+					if(varDecl->hasAttr<AnnotateAttr>())
 					{
 						const AnnotateAttr* attr = varDecl->getAttr<AnnotateAttr>();
 						if(attr->getAnnotation().str() == "local")
 						{
-							varDecl->dump();
+							rewriter.InsertTextBefore(varDecl->getOuterLocStart(), "__local ");
+							rewriter.RemoveText(attr->getLocation().getLocWithOffset(-15), 34);
 						}
-					}**/
+						else if(attr->getAnnotation().str() == "constant")
+						{
+							rewriter.InsertTextBefore(varDecl->getOuterLocStart(), "__constant ");
+							rewriter.RemoveText(attr->getLocation().getLocWithOffset(-15), 37);
+						}
+
+					}
 				}
 			}
 			break;
@@ -291,7 +312,8 @@ public:
 					CXXThisExpr* t;
 					if(member->getMemberDecl()->isDefinedOutsideFunctionOrMethod() 
 						&& (t = containsThisExpr(member->getBase())) 
-						&& (t->getType() == base || !base->isStructureOrClassType()))
+						&& (t->getType() == base || !base->isStructureOrClassType())
+						&& t->isImplicit())
 					{
 						rewriter.InsertTextBefore(member->getLocStart(), "self->");
 					}
@@ -450,14 +472,15 @@ public:
 		struc << "/// END FIELDS CLASS " << classname << std::endl;
 
 		methods << "/// BEGIN METHODS CLASS " << classname << std::endl;
+
+		methods << "#define this self" << std::endl;
+		epilog << "#undef this" << std::endl;
+
 		// If we got a template, define some names
 		if(isa<ClassTemplateSpecializationDecl>(r))
 		{
 			auto decl = static_cast<ClassTemplateSpecializationDecl*>(r);
 			auto pattern = decl->getTemplateInstantiationPattern();
-
-			methods << "#define this self" << std::endl;
-			epilog << "#undef this" << std::endl;
 
 			if(pattern)
 			{
@@ -796,15 +819,18 @@ private:
 	Rewriter TheRewriter;
 };
 
-int transformCudaClang(const std::string &code, std::string& result, const std::string& stdinc)
+int transformCudaClang(const std::string &code, std::string& result, const std::string& stdinc,
+					   bool printIntermediate, bool printCl)
 {
-	// std::cout << std::endl << code << std::endl;
+	if(printIntermediate)
+		std::cout << std::endl << code << std::endl;
 
 	auto frontend = new CLFrontendAction(result);
 	// Transform to CL
 	int retval = 0;
 	retval = !runToolOnCodeWithArgs(frontend, code,
 						{"-fsyntax-only",
+						   "-w",
 						   "-D__CUDACC__",
 						   "-D__CUDA_ARCH__", /// Since we are compiling GPU code
 						   "-D__CUDA_LIBRE_TRANSLATION_PHASE__",
@@ -821,12 +847,14 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 		return retval;
 	}
 
-	std::cout << std::endl << result << std::endl;
+	if(printCl)
+		std::cout << std::endl << result << std::endl;
 
 	// Check syntax of produced CL code
 	// @todo Add switch for additional syntax check!
 	retval = !runToolOnCodeWithArgs(new SyntaxOnlyAction, result,
-					{"-Wno-implicit-function-declaration", 
+					{"-Wno-implicit-function-declaration",
+					 "-w",
 					 "-xcl", 
 					 "-cl-std=CL2.0",
 					 "-Dcl_clang_storage_class_specifiers",

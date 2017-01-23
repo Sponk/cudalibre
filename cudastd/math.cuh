@@ -1,8 +1,5 @@
 #pragma once
 
-/// Contains mathematical functions as described by nVidia in
-/// http://docs.nvidia.com/cuda/cuda-math-api/group__CUDA__MATH__SINGLE.html
-
 #ifndef __host__
 #define __host__
 #endif
@@ -86,11 +83,23 @@ __DEFINE_VECSTRUCT4(unsigned int, uint4)
 /**
  * @defgroup cudastd CUDA Device Standard Library
  * @addtogroup cudastd
+ *
  *  @{
  */
 
 _CL_BUILTIN_ __device__ extern int printf(const char* fmt, int);
- 
+
+ /**
+ * @defgroup math CUDA Maths Functions
+ * @addtogroup math
+ *
+ * Contains mathematical CUDA standard functions as described by nVidia in
+ *
+ * http://docs.nvidia.com/cuda/cuda-math-api/group__CUDA__MATH__SINGLE.html
+ *
+ * @{
+ */
+
 /// @todo Implementation
 _CL_BUILTIN_ __device__ extern float abs(float);
 _CL_BUILTIN_ __device__ extern float fabs(float);
@@ -171,10 +180,15 @@ _CL_BUILTINF_ __device__ extern float y1f(float x);
 _CL_BUILTINF_ __device__ extern float ynf(int n, float x);
 _CL_BUILTINF_ __device__ extern float jnf(int n, float x);
 
-/// Atomics! YEAH!
+/**
+ * @}
+ */
 
 /**
+ * @defgroup atomics CUDA Atomics
+ * @addtogroup atomics
  * OpenCL Builtins
+ * @{
  */
 
 #ifndef __local
@@ -192,12 +206,18 @@ _CL_BUILTIN_ __device__ extern unsigned int atomic_inc(unsigned int* p);
  *
  * Increases *addr by one, if (val <= *addr).
  *
+ * https://community.amd.com/thread/167462
+ *
  * @attention Does not work like in CUDA, val is ignored!
  * @todo Fix this!
  * @return The original value found in *addr.
  */
-__device__ int atomicInc(__local int* addr, int val);
-__device__ int atomicAdd(__local int* addr, int val);
+#define atomicInc(addr, val) atomic_inc(addr)
+#define atomicAdd(addr, val) atomic_add(addr, val)
+
+/**
+ * @}
+ */
 
 #undef _CL_BUILTIN_
 #undef __DEFINE_VECSTRUCT2

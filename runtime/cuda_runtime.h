@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstdlib>
 
 /**
  * @defgroup cuda_runtime CUDA Runtime

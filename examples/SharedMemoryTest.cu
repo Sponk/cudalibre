@@ -16,15 +16,16 @@ __global__ void countThreads(int* output)
 		*output = counter;
 }
 
+#define NUM_THREADS 32
 int main(int argc, char* argv[])
 {
 	int* output;
 	cudaMallocManaged((void**) &output, 4);
 	*output = 0;
-	countThreads<<<1, 32>>>(output);
+	countThreads<<<1, NUM_THREADS>>>(output);
 	cudaDeviceSynchronize();
 
-	if(*output != 32)
+	if(*output != NUM_THREADS)
 	{
 		std::cerr << *output << std::endl;
 		cudaFree(output);

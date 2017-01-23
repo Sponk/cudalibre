@@ -39,12 +39,18 @@ static llvm::cl::opt<std::string>
 
 //static llvm::cl::opt<bool>
 //	GencodeCL("gencode=cl", llvm::cl::desc("Generate OpenCL source code"), llvm::cl::Optional);
-	
+
+static llvm::cl::opt<bool>
+	PrintIntermediate("print-intermediate", llvm::cl::desc("Print untranslated device code to stdout"), llvm::cl::Optional);
+
+static llvm::cl::opt<bool>
+	PrintCl("print-cl", llvm::cl::desc("Print translated device code to stdout"), llvm::cl::Optional);
+
 static llvm::cl::opt<bool>
 	GencodeSPIR("gencode-spir", llvm::cl::desc("Generate OpenCL SPIR binaries"), llvm::cl::Optional);
 	
 int compileSpir(const std::string& src, std::vector<unsigned char>& program);
-int transformCudaClang(const std::string &code, std::string& result, const std::string& stdinc);
+int transformCudaClang(const std::string &code, std::string& result, const std::string& stdinc, bool printIntermediate, bool printCl);
 
 class CUDAASTVisitor : public RecursiveASTVisitor<CUDAASTVisitor>
 {
@@ -94,9 +100,10 @@ public:
 		{
 			if(!r->hasDefinition() || (r->hasDefinition() && !r->isPolymorphic()))
 			{
+				//clResult << declToString(r, true) << ";" << std::endl;
 				auto temp = r->getDescribedTemplate();
 				if (temp == nullptr)
-					clResult << rewriter.getRewrittenText(r->getSourceRange()) << ";" << std::endl;
+					clResult << declToString(r, true) /*rewriter.getRewrittenText(r->getSourceRange())*/ << ";" << std::endl;
 				else
 					clResult << rewriter.getRewrittenText(temp->getSourceRange()) << ";" << std::endl;
 			}
@@ -105,6 +112,35 @@ public:
 		return true;
 	}
 
+	std::string stmtToString(Stmt* stmt)
+	{
+		std::string result;
+		llvm::raw_string_ostream out(result);
+		PrintingPolicy policy(rewriter.getLangOpts());
+
+		stmt->printPretty(out, NULL, policy);
+		out.flush();
+
+		return result;
+	}
+
+	std::string declToString(Decl* d, bool ignoreAttrs = false)
+	{
+		std::string result;
+		llvm::raw_string_ostream out(result);
+		PrintingPolicy policy(rewriter.getLangOpts());
+
+		auto attrs = d->getAttrs();
+
+		d->dropAttrs();
+		d->print(out, policy);
+		d->setAttrs(attrs);
+
+		out.flush();
+		return result;
+	}
+
+
 	bool VisitCUDAKernelCallExpr(CUDAKernelCallExpr* e)
 	{
 		FunctionDecl* decl = static_cast<FunctionDecl*>(e->getCalleeDecl());
@@ -112,8 +148,8 @@ public:
 
 		std::stringstream newDecl;
 		newDecl << "call" << decl->getNameAsString() << "("
-				<< rewriter.getRewrittenText(config->getArg(0)->getSourceRange()) << ", "
-				<< rewriter.getRewrittenText(config->getArg(1)->getSourceRange()) << (e->getNumArgs() ? ", " : "");
+				<< stmtToString(config->getArg(0)) << ", "
+				<< stmtToString(config->getArg(1)) << (e->getNumArgs() ? ", " : "");
 
 		rewriter.ReplaceText(SourceRange(e->getLocStart(), config->getLocEnd().getLocWithOffset(3)), newDecl.str());
 		return true;
@@ -261,10 +297,13 @@ public:
 				offset--;
 
 			// Get function definition
-			clResult << (isGlobal ? "__kernel" : "")
-					 << rewriter.getRewrittenText(SourceRange(bodyLoc.getLocWithOffset(offset + specifier.size()),
-																  bodyLocEnd))
-					 << std::endl;
+			//clResult << "#if 0" << std::endl << stmtToString(f->getBody()) << std::endl << "#endif" << std::endl;
+			/*clResult << (isGlobal ? "__kernel" : "")
+					 << stmtToString(f->getBody())//rewriter.getRewrittenText(SourceRange(bodyLoc.getLocWithOffset(offset + specifier.size()),
+						//										  bodyLocEnd))
+					 << std::endl;*/
+
+			clResult << (isGlobal ? "__kernel " : "") << declToString(f, true);
 
 			if(f->isInlineSpecified())
 			{
@@ -370,11 +409,13 @@ public:
 		result.flush();
 
 		/// @todo Find proper solution using Clang. Somehow using a macro prevent clang from knowing a proper source location.
-		std::string clStr =  std::regex_replace(clResult.str(), std::regex("__shared__"), "__local");
-		clResult.str(clStr);
+		//std::string clStr = std::regex_replace(clResult.str(), std::regex("__shared__"), "__local");
+		//clStr = std::regex_replace(clStr, std::regex("__constant__"), "__constant");
+
+		//clResult.str(clStr);
 
 		std::string clOutput;
-		if(transformCudaClang(clResult.str(), clOutput, stdinc))
+		if(transformCudaClang(clResult.str(), clOutput, stdinc, PrintIntermediate.getValue(), PrintCl.getValue()))
 		{
 			std::cerr << "Error while translating CUDA code!" << std::endl;
 			exit(-1);
@@ -463,9 +504,9 @@ int main(int argc, char** argv)
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__global__=__attribute__((global))"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__device__=__attribute__((device))"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__host__=__attribute__((host))"));
-	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__shared__=__attribute__((shared))"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__shared__=__attribute__((annotate(\"local\")))"));
 
-	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__constant__=__attribute__((constant))"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__constant__=__attribute__((annotate(\"constant\")))"));
 
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDALIBRE_CLANG__"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-D__CUDACC__"));
@@ -490,6 +531,10 @@ int main(int argc, char** argv)
 
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-include"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("math.cuh"));
+
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-include"));
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("cuda_runtime.h"));
+
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-std=c++14"));
 
 	std::stringstream cppResult;
