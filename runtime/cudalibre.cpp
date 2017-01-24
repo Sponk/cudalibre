@@ -200,3 +200,15 @@ cudaError_t cudaEventDestroy(cudaEvent_t event)
 	delete event.time;
 	RETURN_ERROR(cudaSuccess);
 }
+
+cudaError_t cudaDeviceReset()
+{
+	STUB;
+	return cudaSuccess;
+}
+
+cudaError_t cudaGetDevice(int* device)
+{
+	STUB;
+	return cudaErrorNotYetImplemented;
+}
