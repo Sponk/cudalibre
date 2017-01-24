@@ -72,6 +72,10 @@ __DEFINE_VECSTRUCT2(unsigned int, uint2)
 __DEFINE_VECSTRUCT3(unsigned int, uint3)
 __DEFINE_VECSTRUCT4(unsigned int, uint4)
 
+__DEFINE_VECSTRUCT2(unsigned char, uchar2)
+__DEFINE_VECSTRUCT3(unsigned char, uchar3)
+__DEFINE_VECSTRUCT4(unsigned char, uchar4)
+
 #ifdef __CUDACC__
 
 /// Used, when its name has to be exactly the same
@@ -241,6 +245,10 @@ __host__ __device__ int4 make_int4(int x, int y, int z, int w);
 __host__ __device__ uint2 make_uint2(unsigned int x, unsigned int y);
 __host__ __device__ uint3 make_uint3(unsigned int x, unsigned int y, unsigned int z);
 __host__ __device__ uint4 make_uint4(unsigned int x, unsigned int y, unsigned int z, unsigned int w);
+
+__host__ __device__ uchar2 make_uchar2(unsigned char x, unsigned char y);
+__host__ __device__ uchar3 make_uchar3(unsigned char x, unsigned char y, unsigned char z);
+__host__ __device__ uchar4 make_uchar4(unsigned char x, unsigned char y, unsigned char z, unsigned char w);
 
 /**
  * @}
