@@ -519,7 +519,8 @@ int main(int argc, char** argv)
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster(RTINC));
 #endif
 
-	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-I/usr/include/cudalibre"));
+	/// @todo Get as config file from CMake!
+	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-I/usr/cudalibre/include"));
 	
 	std::stringstream llvmVersion;
 	// Calcualate manually since LLVM_VERSION_STRING might include some "svn" postfix

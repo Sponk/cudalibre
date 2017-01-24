@@ -837,7 +837,7 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 #ifdef STDINC
 						   STDINC,
 #endif
-						   "-I/usr/include/cudalibre",
+						   "-I/usr/cudalibre/include",
 						   "-include", "math.cuh",
 						   "-xc++"});
 
