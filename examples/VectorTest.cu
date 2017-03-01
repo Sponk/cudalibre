@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
 	add<<<1, 32>>>(da, db, dc);
 	CUDA_CHECK_LAST;
 
-	CUDA_CHECK(cudaMemcpy2D(dc, pitch, c, sizeof(float), sizeof(float), TESTSIZE, cudaMemcpyDeviceToHost));
+	CUDA_CHECK(cudaMemcpy(c, dc, sizeof(float) * TESTSIZE, cudaMemcpyDeviceToHost));
 
 	// Check expected result
 	int retval = 0;

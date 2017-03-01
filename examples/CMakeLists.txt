@@ -1,5 +1,5 @@
 
-include_directories(${CMAKE_SOURCE_DIR}/runtime ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_SOURCE_DIR}/runtime/include ${CMAKE_CURRENT_SOURCE_DIR})
 
 cuda_add_executable(VectorPitchTest VectorPitchTest.cu)
 add_test(VectorPitchTest VectorPitchTest)
@@ -36,6 +36,11 @@ add_test(SharedMemoryTest SharedMemoryTest)
 
 cuda_add_executable(LibstdTest LibstdTest.cu)
 add_test(LibstdTest LibstdTest)
-target_link_libraries(LibstdTest cudastd)
+
+cuda_add_executable(PrefixSum PrefixSum.cu)
+add_test(PrefixSum PrefixSum)
+
+cuda_add_executable(Maximum Maximum.cu)
+add_test(Maximum Maximum)
 
 cuda_add_executable(cuinfo cuinfo.cu)

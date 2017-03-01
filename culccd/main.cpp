@@ -33,6 +33,8 @@ struct Arguments
 {
 	std::string output;
 	std::string input;
+	std::vector<std::string> objects;
+	std::vector<std::string> sources;
 	bool hasC;
 	bool verbose;
 };
@@ -46,7 +48,7 @@ void parseArgs(int argc,
 	args.hasC = false;
 	args.verbose = false;
 	
-	for(size_t i = 1; i < argc - 1; i++)
+	for(size_t i = 1; i < argc; i++)
 	{
 		char* arg = argv[i];
 		
@@ -55,6 +57,16 @@ void parseArgs(int argc,
 			IGNORE("-?-gencode=.*")
 			IGNORE("-X.*")
 			IGNORE("-arch.*")
+			CASE(".*\\.o")
+			{
+				std::cout << "ARG: " << arg << std::endl;
+				args.objects.push_back(arg);
+			}
+			CASE(".*\\.cu")
+			{
+				std::cout << "ARG: " << arg << std::endl;
+				args.sources.push_back(arg);
+			}
 			CASE("-isystem.*")
 			{
 				gccArgs << "-I" << argv[++i] << " ";
@@ -86,7 +98,7 @@ void parseArgs(int argc,
 		HCTIWS
 	}
 	
-	args.input = argv[argc - 1];
+	//args.input = argv[argc - 1];
 	
 	gccArgs << g_defaultFlags;
 	culccArgs << " -- " << gccArgs.str();
@@ -105,16 +117,21 @@ int main(int argc, char** argv)
 	parseArgs(argc, argv, culccArgs, gccArgs, args);
 	
 	// produces something like "culcc <source> -o <out> -- <some args>"
-	std::string command = "culcc " + args.input + " -o " + args.input + ".cpp" + culccArgs.str();
-	if(args.verbose)
-		std::cout << command << std::endl;
-	
-	if (system(command.c_str()))
+	// Generate CL + C++ for every cu file
+	for(const auto& file : args.sources)
 	{
-		std::cerr << "Could not preprocess CUDA file!" << std::endl;
-		return 1;
+		std::string intermediateCpp = file + ".cpp";
+		std::string command = "culcc " + file + " -o " + intermediateCpp + culccArgs.str();
+		if(args.verbose)
+			std::cout << command << std::endl;
+		
+		if (system(command.c_str()))
+		{
+			std::cerr << "Could not preprocess CUDA file!" << std::endl;
+			return 1;
+		}
 	}
-
+	
 	// Add source file here so it does not interfere with the culccArgs earlier
 
 	if (!args.output.empty())
@@ -122,9 +139,12 @@ int main(int argc, char** argv)
 
 	gccArgs << " " << (args.hasC ? "-c " : "") << args.input << ".cpp";
 	
-	command = "g++ " + gccArgs.str();
+	std::string command = "g++ " + gccArgs.str();
 	if(args.verbose)
 		std::cout << command << std::endl;
 		
-	return system(command.c_str());
+	int retval = system(command.c_str());
+	// Clean up afterwards
+	//retval |= remove(intermediateCpp.c_str());
+	return retval;
 }

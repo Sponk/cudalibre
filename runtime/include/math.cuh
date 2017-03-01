@@ -54,30 +54,10 @@ extern dim3 blockDim;
 
 #endif // __CUDA_LIBRE_TRANSLATION_PHASE__
 
-// Some stuff used in the compiler to prevent errors while transforming code
-// @note These won't appear in the OpenCL code since they are defined as macros. THIS IS NECESSARY! DON'T CHANGE!
-#define __DEFINE_VECSTRUCT2(type, name) struct name { type x; type y; };
-#define __DEFINE_VECSTRUCT3(type, name) struct name { type x; type y; type z;};
-#define __DEFINE_VECSTRUCT4(type, name) struct name { type x; type y; type z; type w;};
-
-__DEFINE_VECSTRUCT2(float, float2)
-__DEFINE_VECSTRUCT3(float, float3)
-__DEFINE_VECSTRUCT4(float, float4)
-
-__DEFINE_VECSTRUCT2(int, int2)
-__DEFINE_VECSTRUCT3(int, int3)
-__DEFINE_VECSTRUCT4(int, int4)
-
-__DEFINE_VECSTRUCT2(unsigned int, uint2)
-__DEFINE_VECSTRUCT3(unsigned int, uint3)
-__DEFINE_VECSTRUCT4(unsigned int, uint4)
-
-__DEFINE_VECSTRUCT2(unsigned char, uchar2)
-__DEFINE_VECSTRUCT3(unsigned char, uchar3)
-__DEFINE_VECSTRUCT4(unsigned char, uchar4)
+#include "vector_types.h"
 
 #ifdef __CUDACC__
-
+#if 0
 /// Used, when its name has to be exactly the same
 #define _CL_BUILTIN_ __attribute__((annotate("builtin")))
 
@@ -224,9 +204,11 @@ _CL_BUILTIN_ __device__ extern unsigned int atomic_inc(unsigned int* p);
  */
 
 #undef _CL_BUILTIN_
-#undef __DEFINE_VECSTRUCT2
-#undef __DEFINE_VECSTRUCT3
-#undef __DEFINE_VECSTRUCT4
+
+//#include "vector_functions.h"
+//#include "cuda_texture_types.h"
+#endif
+#include "math_functions.h"
 
 #else
 #include <math.h>
@@ -234,21 +216,6 @@ _CL_BUILTIN_ __device__ extern unsigned int atomic_inc(unsigned int* p);
 #define __host__
 #endif
 
-__host__ __device__ float2 make_float2(float x, float y);
-__host__ __device__ float3 make_float3(float x, float y, float z);
-__host__ __device__ float4 make_float4(float x, float y, float z, float w);
-
-__host__ __device__ int2 make_int2(int x, int y);
-__host__ __device__ int3 make_int3(int x, int y, int z);
-__host__ __device__ int4 make_int4(int x, int y, int z, int w);
-
-__host__ __device__ uint2 make_uint2(unsigned int x, unsigned int y);
-__host__ __device__ uint3 make_uint3(unsigned int x, unsigned int y, unsigned int z);
-__host__ __device__ uint4 make_uint4(unsigned int x, unsigned int y, unsigned int z, unsigned int w);
-
-__host__ __device__ uchar2 make_uchar2(unsigned char x, unsigned char y);
-__host__ __device__ uchar3 make_uchar3(unsigned char x, unsigned char y, unsigned char z);
-__host__ __device__ uchar4 make_uchar4(unsigned char x, unsigned char y, unsigned char z, unsigned char w);
 
 /**
  * @}

@@ -10,7 +10,7 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 find_package(Clang REQUIRED clangTooling libClang)
-add_definitions(-DRTINC="-I${CMAKE_SOURCE_DIR}/runtime" -DSTDINC="-I${CMAKE_SOURCE_DIR}/cudastd")
+add_definitions(-DRTINC="-I${CMAKE_SOURCE_DIR}/runtime/include")
 
 add_executable(culcc
 		ClangTool.cpp
@@ -30,7 +30,6 @@ target_link_libraries(culcc
   clangEdit
   clangLex
   clangTooling
-  clruntime
 )
 
 install(TARGETS culcc

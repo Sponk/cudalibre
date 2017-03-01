@@ -4,19 +4,21 @@ if(USE_CL1)
   add_definitions(-DUSE_CL1)
 endif()
 
-add_library(clruntime SHARED
+cuda_add_rt_library(clruntime SHARED
         cudalibre.cpp
-        cudalibre.h
+        include/cudalibre.h
         CudaDevice.cpp
         CudaDevice.h
         CudaLibreContext.cpp
-        CudaLibreContext.h)
+        CudaLibreContext.h
+        cuda/math.cu)
 
 target_link_libraries(clruntime ${OpenCL_LIBRARIES})
-include_directories(${CudaLibre_INCLUDE_DIRS} ${OpenCL_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CudaLibre_INCLUDE_DIRS} ${OpenCL_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-set_target_properties(clruntime PROPERTIES PUBLIC_HEADER
-        "cudalibre.h;cuda_runtime.h;cuda_types.h;cuda.h")
+file(GLOB_RECURSE HEADERS *.h)
+file(GLOB_RECURSE CUHEADERS *.cuh)
+set_target_properties(clruntime PROPERTIES PUBLIC_HEADER "${HEADERS};${CUHEADERS}")
 
 install(TARGETS clruntime
         EXPORT CudaLibreTargets

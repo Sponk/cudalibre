@@ -830,15 +830,17 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 	int retval = 0;
 	retval = !runToolOnCodeWithArgs(frontend, code,
 						{"-fsyntax-only",
-						   "-w",
-						   "-D__CUDACC__",
-						   "-D__CUDA_ARCH__", /// Since we are compiling GPU code
-						   "-D__CUDA_LIBRE_TRANSLATION_PHASE__",
-#ifdef STDINC
-						   STDINC,
+							"-w",
+							"-D__CUDACC__",
+							"-D__CUDA_ARCH__", /// Since we are compiling GPU code
+							"-D__CUDA_LIBRE_TRANSLATION_PHASE__",
+							"-I/usr/cudalibre/include",
+#ifdef RTINC
+							RTINC,
 #endif
-						   "-I/usr/cudalibre/include",
-						   "-include", "math.cuh",
+							"-include", "translation_defines.h",
+							"-D__kernel=__attribute__((annotate(\"kernel\")))",
+							"-D__local=__attribute__((annotate(\"local\")))",
 						   "-xc++"});
 
 	if(retval)
@@ -861,9 +863,6 @@ int transformCudaClang(const std::string &code, std::string& result, const std::
 					 "-isystem", stdinc + "/libclc/generic/include", /// @attention Don't hardcode paths like this!
 					 "-isystem", "/usr/include/",
 					 "-I/usr/include/cudalibre",
-#ifdef STDINC
-					 STDINC,
-#endif
 
 #ifdef RTINC
 					 RTINC,

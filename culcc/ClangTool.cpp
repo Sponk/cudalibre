@@ -17,7 +17,6 @@
 #include <getopt.h>
 #include <cstring>
 
-#include <cudalibre.h>
 #include <regex>
 
 #include "GNUBlacklist.h"
@@ -89,8 +88,28 @@ public:
 	{
 		if(!isInBlacklist(t) && t->getDescribedTemplate() == nullptr)
 		{
-			clResult << rewriter.getRewrittenText(t->getSourceRange()) << ";" << std::endl;
+			//clResult << rewriter.getRewrittenText(t->getSourceRange()) << ";" << std::endl;
+			
+			auto type = t->getAnonDeclWithTypedefName();
+			if(isa<CXXRecordDecl>(type))
+			{
+				clResult << "typedef " << declToString(type) << t->getNameAsString() << ";" << std::endl;
+			}
+			else
+				clResult << declToString(t) << ";" << std::endl;
 		}
+		
+		return true;
+	}
+
+	bool VisitEnumDecl(EnumDecl* e)
+	{
+		if(!isInBlacklist(e))
+		{
+			clResult << declToString(e) << ";" << std::endl;
+		}
+
+		return true;
 	}
 
 	bool VisitCXXRecordDecl(CXXRecordDecl* r)
@@ -435,6 +454,7 @@ public:
 		
 		if(GencodeSPIR.getValue() && false)
 		{
+#if 0
 			cu::SPIRHeader header;
 			std::vector<unsigned char> program;
 			compileSpir(clOutput, program);
@@ -444,6 +464,7 @@ public:
 			
 			cppResult << "public: LibreCudaInitializer() { cu::initCudaLibreSPIR((const unsigned char[]) {"
 				  << byteify((const unsigned char*) &header, sizeof(header)) << ", " << byteify(program.data(), program.size()) << "}); }" << std::endl;
+#endif
 		}
 		else
 		{
@@ -530,8 +551,8 @@ int main(int argc, char** argv)
 				<< "/include/";
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster(llvmVersion.str().c_str()));
 
-	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-include"));
-	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("math.cuh"));
+	//tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-include"));
+	//tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("math.cuh"));
 
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-include"));
 	tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("cuda_runtime.h"));

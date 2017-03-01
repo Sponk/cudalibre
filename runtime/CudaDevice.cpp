@@ -254,19 +254,28 @@ cudaError_t cu::CudaDevice::memcpy(void* dst, const void* src, size_t count, cud
 {
 	int err = 0;
 
-	auto bufiter = bufferHeap.find(dst);
-	if(bufiter == bufferHeap.end())
-		return cudaErrorMemoryAllocation;
-
 	switch(kind)
 	{
-		case cudaMemcpyHostToDevice: // FIXME: Should this be blocking or asynchronous?
+		case cudaMemcpyHostToDevice:
+		{
+			// FIXME: Should this be blocking or asynchronous?
+			auto bufiter = bufferHeap.find(dst);
+			if (bufiter == bufferHeap.end())
+				return cudaErrorMemoryAllocation;
+
 			err = queue.enqueueWriteBuffer(*bufiter->second.buffer, CL_TRUE, 0, count, src, NULL, NULL);
-			break;
+		}
+		break;
 
 		case cudaMemcpyDeviceToHost:
-			err = queue.enqueueReadBuffer(*bufiter->second.buffer, CL_TRUE, 0, count, (void*) src, NULL, NULL);
-			break;
+		{
+			auto bufiter = bufferHeap.find((void*) src);
+			if (bufiter == bufferHeap.end())
+				return cudaErrorMemoryAllocation;
+
+			err = queue.enqueueReadBuffer(*bufiter->second.buffer, CL_TRUE, 0, count, dst, NULL, NULL);
+		}
+		break;
 
 		default: return cudaErrorNotImplemented;
 	}
